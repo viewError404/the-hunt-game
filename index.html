@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>THE HUNT - Among Us AR Engine</title>
-    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
+    <title>THE HUNT - Advanced Matchmaking Engine</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', -apple-system, sans-serif; user-select: none; }
         body { background-color: #09090b; color: #fafafa; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
@@ -14,313 +13,293 @@
         .view { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; flex-direction: column; padding: 24px; justify-content: space-between; z-index: 10; }
         .view.active { display: flex; }
         
-        /* กล้องวิดีโอพื้นหลังระบบ AR HUD */
-        .camera-bg { position: absolute; width: 100%; height: 100%; object-fit: cover; top: 0; left: 0; z-index: 1; pointer-events: none; display: none; }
-        .camera-overlay { position: absolute; width: 100%; height: 100%; background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.8) 100%); z-index: 2; pointer-events: none; display: none; }
-        
-        /* หน้าต่าง Google Maps ซ้อนทับ (จะโผล่มาเมื่อกดรูปแผนที่เท่านั้น) */
-        .map-overlay-screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #09090b; z-index: 40; padding: 20px; flex-direction: column; }
-        .map-canvas-zone { width: 100%; height: 75%; border: 2px solid #3f3f46; border-radius: 8px; overflow: hidden; position: relative; }
-        
-        /* ปุ่มหลักวงกลมตรงกลางจอตามรูปวาด */
-        .center-circle-btn { width: 180px; height: 180px; border-radius: 50%; border: 4px solid #ffffff; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.9) 100%); color: #ffffff; font-size: 32px; font-weight: 900; display: flex; justify-content: center; align-items: center; cursor: pointer; position: absolute; top: 40%; left: calc(50% - 90px); z-index: 20; backdrop-filter: blur(4px); }
-        .center-circle-btn.disabled { opacity: 0.15; pointer-events: none; filter: grayscale(100%); border-color: #71717a; color: #71717a; }
-        
+        /* HUD & UI Elements */
         .status-badge-rect { position: absolute; top: 30px; left: 24px; border: 2px solid #ffffff; padding: 6px 18px; font-size: 14px; font-weight: 800; background: rgba(0,0,0,0.85); z-index: 20; }
-        .map-icon-btn { position: absolute; top: 30px; right: 24px; width: 45px; height: 45px; border-radius: 50%; border: 2px solid #ffffff; display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; background: rgba(0,0,0,0.85); z-index: 20; }
+        .map-icon-circle { position: absolute; top: 30px; right: 24px; width: 42px; height: 42px; border-radius: 50%; border: 2px solid #ffffff; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; background: rgba(0,0,0,0.85); z-index: 20; }
         .timer-display { position: absolute; top: 35px; left: 50%; transform: translateX(-50%); font-size: 20px; font-weight: 900; background: rgba(0,0,0,0.85); padding: 4px 14px; border-radius: 6px; border: 1px solid #3f3f46; z-index: 20; font-family: monospace; }
+
+        /* Big Action Buttons */
+        .center-circle-btn { width: 180px; height: 180px; border-radius: 50%; border: 4px solid #ffffff; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.6) 100%); color: #ffffff; font-size: 32px; font-weight: 900; display: flex; justify-content: center; align-items: center; cursor: pointer; position: absolute; top: 40%; left: calc(50% - 90px); z-index: 20; transition: transform 0.1s; }
+        .center-circle-btn:active { transform: scale(0.95); }
+        .center-circle-btn.disabled { opacity: 0.15; pointer-events: none; filter: grayscale(100%); }
         
-        .menu-box { width: 100%; border: 2px solid #ffffff; padding: 18px; margin-bottom: 14px; text-align: center; font-size: 18px; font-weight: 800; background: rgba(0, 0, 0, 0.85); cursor: pointer; border-radius: 6px; z-index: 20; }
+        .sub-circle-btn { width: 62px; height: 62px; border-radius: 50%; border: 2px solid #ffffff; background: rgba(9, 9, 11, 0.9); color: #ffffff; font-size: 14px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; position: absolute; z-index: 20; }
+        
+        /* Setup Map Canvas Zone */
+        .map-canvas-container { width: 100%; height: 260px; border: 2px dashed #3f3f46; background: #111113; position: relative; border-radius: 8px; margin: 12px 0; overflow: hidden; }
+        .canvas-hint { position: absolute; top: 8px; left: 10px; font-size: 11px; color: #a1a1aa; pointer-events: none; }
+        .radar-screen { width: 100%; height: 100%; background: #020205; position: relative; }
+        .radar-sweep { position: absolute; width: 100%; height: 100%; background: conic-gradient(from 0deg, rgba(34,197,94,0.1) 0deg, transparent 90deg); animation: sweep 4s linear infinite; pointer-events: none; }
+        @keyframes sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .radar-node { position: absolute; width: 12px; height: 12px; border-radius: 50%; transform: translate(-50%, -50%); }
+
+        /* Menu & Inputs */
+        .app-title { font-size: 36px; font-weight: 900; text-align: center; margin-top: 30px; letter-spacing: 2px; }
+        .menu-box { width: 100%; border: 2px solid #ffffff; padding: 18px; margin-bottom: 14px; text-align: center; font-size: 16px; font-weight: 800; background: rgba(255,255,255,0.02); cursor: pointer; border-radius: 6px; }
         .menu-box:active { background: #ffffff; color: #000000; }
         
-        .config-label { font-size: 13px; font-weight: bold; color: #fafafa; background: rgba(0,0,0,0.8); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 6px; }
-        .config-input { width: 100%; background: #18181b; border: 1px solid #3f3f46; padding: 10px; color: #fff; font-weight: bold; border-radius: 6px; margin-top: 4px; margin-bottom: 8px; }
+        .config-label { font-size: 13px; font-weight: bold; color: #a1a1aa; margin-top: 8px; display: block; }
+        .config-input { width: 100%; background: #18181b; border: 1px solid #3f3f46; padding: 10px; color: #fff; font-weight: bold; border-radius: 6px; margin-top: 4px; }
         
-        .member-row { display: flex; align-items: center; padding: 11px; border: 1px solid #27272a; border-radius: 6px; margin-bottom: 8px; background: rgba(0,0,0,0.85); font-size: 14px; }
-        .room-code-banner { font-size: 24px; font-weight: 900; text-align: center; background: #27272a; padding: 10px; border-radius: 6px; border: 1px dashed #fff; margin-bottom: 15px; color: #22c55e; letter-spacing: 4px; }
+        .member-row { display: flex; align-items: center; padding: 10px; border: 1px solid #27272a; border-radius: 6px; margin-bottom: 8px; background: rgba(255,255,255,0.01); font-size: 14px; }
+        .cooldown-box { border: 1px solid #ffffff; padding: 4px 10px; font-size: 12px; font-weight: bold; font-family: monospace; background: #000; position: absolute; bottom: 40px; left: 24px; z-index: 25; }
+        
+        video { position: absolute; width: 100%; height: 100%; object-fit: cover; top: 0; left: 0; z-index: 1; pointer-events: none; }
+        .digital-map-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #09090b; z-index: 40; padding: 24px; flex-direction: column; }
     </style>
 </head>
 <body>
 
     <div class="phone-frame">
-        <video id="webcamStream" class="camera-bg" autoplay playsinline muted></video>
-        <div id="webcamOverlay" class="camera-overlay"></div>
+        <div id="cameraLayer" style="display:none; position:absolute; width:100%; height:100%; z-index:1;">
+            <video id="hardwareWebcam" autoplay playsinline muted></video>
+            <div style="position:absolute; width:100%; height:100%; background:radial-gradient(circle, transparent 40%, rgba(0,0,0,0.75) 100%); pointer-events:none;"></div>
+        </div>
 
-        <div class="view active" id="viewMain">
-            <div style="font-size: 36px; font-weight: 900; text-align: center; margin-top: 40px; letter-spacing: 2px;">THE HUNT</div>
+        <div class="view active" id="screenMain">
+            <div class="app-title">THE HUNT</div>
             <div>
-                <div class="menu-box" onclick="generateHostRoom()">สร้างห้องห้อง</div>
-                <div class="menu-box" onclick="promptRoomCode()">เข้าร่วมห้อง</div>
+                <div class="menu-box" onclick="goToConfig()">สร้างห้องเกม (หัวหน้า)</div>
+                <div class="menu-box" onclick="connectAsPlayer()">เข้าร่วมห้องเกม (ผู้เล่น)</div>
             </div>
-            <div style="text-align: center; font-size: 11px; color: #a1a1aa;">AMONG US AR MODE v3.0</div>
+            <div style="text-align: center; font-size: 12px; color: #3f3f46;">ADVANCED LOCATION SYSTEM v2.0</div>
         </div>
 
-        <div class="view" id="viewConfig" style="justify-content: flex-start; overflow-y: auto; gap: 4px;">
-            <div style="font-size:20px; font-weight:900; text-align:center; margin-top:10px; margin-bottom:10px;">⚙️ ตั้งค่าห้อง & ลากแนวกำแพง</div>
+        <div class="view" id="screenConfig" style="justify-content: flex-start; overflow-y: auto; gap: 10px;">
+            <div class="app-title" style="font-size:22px; margin-top:10px;">ตั้งค่าขอบเขตและกติกา</div>
             
-            <div class="room-code-banner" id="displayRoomCode">CODE: ------</div>
-
-            <label class="config-label">✏️ กดปุ่มวาด เพื่อลากแนวกำแพงจากจุดเริ่มต้นไปจุดสิ้นสุด</label>
-            <div class="map-canvas-zone" style="height: 200px; margin-top:5px;">
-                <div id="googleMapSetup" style="width:100%; height:100%;"></div>
+            <label class="config-label">📐 จิ้มลากขอบเขตสนามแข่ง (พิกัดอ้างอิงรอบตัวคุณ)</label>
+            <div class="map-canvas-container" id="mapCanvas" onclick="drawZoneBorder(event)">
+                <div class="canvas-hint" id="canvasHint">คลิกบนพื้นที่ 3 ครั้งขึ้นไปเพื่อวาดกรอบขอบเขตขยายกว้าง-ยาว...</div>
+                <svg id="svgPoly" style="position:absolute; width:100%; height:100%; top:0; left:0; pointer-events:none;">
+                    <polygon id="polyShape" points="" style="fill:rgba(34,197,94,0.15); stroke:#22c55e; stroke-width:2" />
+                </svg>
+                <div style="position:absolute; top:50%; left:50%; width:8px; height:8px; background:#ef4444; border-radius:50%; transform:translate(-50%,-50%);" title="ตำแหน่งปัจจุบันของคุณ"></div>
             </div>
 
-            <label class="config-label">⏱️ กำหนดเวลารอบการเล่น (นาที)</label>
-            <input type="number" id="inpTime" class="config-input" value="8" min="5">
-
-            <label class="config-label">📦 จำนวนเควสภารกิจที่จะสุ่มกระจาย (จุด)</label>
-            <input type="number" id="inpQuests" class="config-input" value="5" min="1">
-
-            <button class="menu-box" style="background:#ffffff; color:#000000; margin-top:15px;" onclick="goToLobbyRoom(false)">บันทึกข้อมูลเปิดห้อง</button>
-        </div>
-
-        <div class="view" id="viewLobby">
             <div>
-                <div style="font-size:18px; font-weight:900; text-align:center; margin-bottom:10px;">ROOM LOBBY STATUS</div>
-                <div id="lobbyCodeLabel" style="text-align:center; font-weight:bold; color:#eab308; margin-bottom:15px;">รหัสห้อง: ------</div>
+                <label class="config-label">⏱️ กำหนดเวลาเล่นต่อรอบ (นาที)</label>
+                <input type="number" class="config-input" id="cfgTime" value="8" min="5">
+            </div>
+
+            <div>
+                <label class="config-label">👥 จำนวนผู้เล่นขั้นต่ำเพื่อเริ่มระบบ</label>
+                <input type="number" class="config-input" id="cfgMinPlayers" value="3" min="2">
+            </div>
+
+            <button class="menu-box" style="background:#ffffff; color:#000000; margin-top:20px; margin-bottom:10px;" onclick="saveConfigAndGoToLobby()">บันทึกข้อมูลและเปิดห้อง</button>
+        </div>
+
+        <div class="view" id="screenLobby">
+            <div>
+                <div style="font-size:18px; font-weight:900; margin-bottom:10px; text-align:center;">ห้องพักคอยแมตช์การแข่งขัน</div>
+                <div id="lobbyStatus" style="font-size:13px; color:#ef4444; text-align:center; margin-bottom:15px; font-weight:bold;">❌ จำนวนผู้เล่นไม่ถึงเป้าหมาย เริ่มไม่ได้</div>
                 
-                <div id="lobbyAlert" style="font-size:13px; color:#ef4444; text-align:center; font-weight:bold; margin-bottom:20px;">❌ สมาชิกไม่ครบ 4 คน เริ่มเกมไม่ได้เด็ดขาด</div>
+                <div class="member-row">👥 คุณ (หัวหน้าห้อง) <span style="margin-left:auto; color:#22c55e;">📍 ลงทะเบียน GPS แล้ว</span></div>
+                <div id="playerListContainer"></div>
+            </div>
+            <button class="menu-box disabled" id="btnLaunchMatch" style="background:#22c55e; border:none; color:#fff;" onclick="launchSpawnPhase()">ปล่อยตัวผู้เล่นไปยังจุดเกิด</button>
+        </div>
+
+        <div class="view" id="screenSpawn" style="padding:0;">
+            <div class="radar-screen">
+                <div class="radar-sweep"></div>
                 
-                <div class="member-row">👥 คุณ (เจ้าของห้อง) <span style="margin-left:auto; color:#22c55e;">📍 สแตนด์บาย</span></div>
-                <div id="lobbyPlayersList"></div>
+                <div style="position:absolute; top:25px; left:24px; right:24px; background:rgba(0,0,0,0.9); border:1px solid #3f3f46; padding:8px 12px; font-size:12px; font-weight:bold; z-index:20; border-radius:4px; text-align:center;" id="spawnAlertText">
+                    🚶‍♂️ กรุณาเดินไปยังจุดเกิดของคุณเพื่อปลดล็อกปุ่มพร้อม...
+                </div>
+
+                <div class="radar-node" style="top:70%; left:50%; background:#3b82f6; box-shadow:0 0 10px #3b82f6; z-index:20;" id="nodeUser"></div>
+                <div class="radar-node" style="top:35%; left:45%; background:#ef4444; box-shadow:0 0 12px #ef4444; z-index:20;" id="nodeSpawnPoint"></div>
+                
+                <div class="center-circle-btn disabled" id="btnReadyTrigger" style="border-color:#22c55e; color:#22c55e; font-size:24px;" onclick="triggerDeviceReady()">พร้อม</div>
             </div>
-            <button class="menu-box disabled" id="btnStartGame" style="background:#22c55e; border:none; color:#fff; margin:0;" onclick="enterSpawnNavigationPhase()">เริ่มเกม (ส่งทุกคนไปจุดเกิด)</button>
         </div>
 
-        <div class="view" id="viewSpawnNav" style="padding:0;">
-            <div id="googleMapSpawn" style="width:100%; height:100%; position:absolute; top:0; left:0; z-index:1;"></div>
-            
-            <div class="nav-alert-banner" id="spawnBannerText" style="z-index:30;">
-                🚶‍♂️ ตรวจสอบตำแหน่งตัวเองบนแผนที่ และเดินไปยังจุดเกิดสีแดง...
-            </div>
-
-            <div class="center-circle-btn disabled" id="btnReadyActive" style="border-color:#22c55e; color:#22c55e; font-size:24px;" onclick="randomizeRolesAndTasks()">พร้อม</div>
+        <div class="view" id="hudSurvivor" style="padding:0;">
+            <div class="status-badge-rect">ชีวิต</div><div class="timer-display time-counter">08:00</div>
+            <div class="map-icon-circle" onclick="toggleRadarOverlay(true)">🗺️</div>
+            <div class="center-circle-btn" style="border-color:#eab308; color:#eab308;" onclick="alert('กำลังดำเนินการกู้ภารกิจ...')">ทำเควส</div>
+            <div style="position:absolute; bottom:35px; left:24px; font-size:12px; z-index:20; background:rgba(0,0,0,0.6); padding:4px 8px;" id="survDist">ระยะห่างวัตถุประสงค์: คำนวณค่า...</div>
         </div>
 
-        <div class="view" id="viewGameHUD" style="padding:0; background:transparent;">
-            <div class="status-badge-rect" id="roleBadge" style="border:none; color:#fff; z-index:20;">กำลังสุ่มฝั่ง...</div>
-            <div class="timer-display" id="gameTimer">08:00</div>
-            
-            <div class="map-icon-btn" onclick="toggleMapOverlay(true)">🗺️</div>
-            
-            <div class="center-circle-btn" id="btnMainAction" style="border-color:#fff; color:#fff; font-size:24px;" onclick="executeMainAction()">แอ็กชัน</div>
+        <div class="view" id="hudPolice" style="padding:0;">
+            <div class="status-badge-rect">ชีวิต</div><div class="timer-display time-counter">08:00</div>
+            <div class="map-icon-circle" onclick="toggleRadarOverlay(true)">🗺️</div>
+            <div class="center-circle-btn" style="border-color:#3b82f6; color:#3b82f6;" id="btnPFire" onclick="fireSkill('police', 5)">ยิง</div>
+            <div class="cooldown-box" id="cdP" style="color:#3b82f6;">READY</div>
         </div>
 
-        <div class="map-overlay-screen" id="mapOverlayContainer">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <div style="font-size:16px; font-weight:900;" id="mapOverlayTitle">📌 แผนที่ยุทธวิธี & พิกัดเควสสุ่ม</div>
-                <div class="map-icon-btn" style="position:static; background:#ef4444; border:none;" onclick="toggleMapOverlay(false)">❌</div>
+        <div class="view" id="hudKiller" style="padding:0;">
+            <div class="status-badge-rect">ชีวิต</div><div class="timer-display time-counter">08:00</div>
+            <div class="map-icon-circle" onclick="toggleRadarOverlay(false)">❌</div>
+            <div class="center-circle-btn" style="border-color:#ef4444; color:#ef4444;" onclick="alert('โจมตีประชิดสำเร็จ!')">แทง</div>
+            <div class="sub-circle-btn" style="top:52%; right:24px; border-color:#ef4444;" id="btnKThrow" onclick="fireSkill('killer', 8)">ปา</div>
+            <div class="cooldown-box" id="cdK" style="color:#ef4444;">READY</div>
+        </div>
+
+        <div class="digital-map-overlay" id="radarOverlay">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <div style="font-size:16px; font-weight:900;">TACTICAL AREA MAP</div>
+                <div class="map-icon-circle" style="position:static; background:#ef4444; border:none;" onclick="toggleRadarOverlay(false)">❌</div>
             </div>
-            <div class="map-canvas-zone">
-                <div id="googleMapGameplay" style="width:100%; height:100%;"></div>
-            </div>
-            <div style="font-size:12px; color:#a1a1aa; text-align:center; margin-top:10px;" id="taskStatusText">
-                คุณต้องเดินไปยังตำแหน่งหมุดเควสบนแผนที่เพื่อกู้สถานการณ์ยามค่ำคืน
+            <div class="radar-screen" style="height:80%; border:1px solid #27272a; border-radius:6px;">
+                <div class="radar-sweep"></div>
+                <div class="radar-node" style="top:50%; left:50%; background:#fff;">YOU</div>
+                <div class="radar-node" style="top:42%; left:38%; background:#eab308;" id="radarQNode"></div>
             </div>
         </div>
 
     </div>
 
     <script>
-        let generatedRoomCode = "";
-        let currentLat = 13.7563, currentLng = 100.5018;
-        let countPlayers = 1;
-        let distanceToSpawn = 30; // จำลองระยะก้าวเดินจริงเข้าจุดเกิด (เมตร)
-        let totalQuestsConfig = 5;
-        let matchDuration = 480;
-        let finalAssignedRole = "survivor";
+        let clickPoints = [];
+        let limitMinPlayers = 3;
+        let limitMatchTime = 480; 
+        let simulateConnectedPlayers = 1; 
+        let mockDistanceToSpawn = 35; // จำลองระยะห่างเริ่มต้นจากจุดเกิด (เมตร)
+        let skillLock = {};
 
         function changeView(id) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(id).classList.add('active');
         }
 
-        // ระบบสุ่มรหัสเข้าห้อง 6 หลักอัตโนมัติเมื่อกดสร้างห้อง
-        function generateHostRoom() {
-            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            generatedRoomCode = "";
-            for(let i=0; i<6; i++) {
-                generatedRoomCode += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
+        function goToConfig() { changeView('screenConfig'); }
+
+        // ฟังก์ชันจิ้มวาดแผนที่ขอบเขตพื้นที่อ้างอิงตำแหน่งปัจจุบัน
+        function drawZoneBorder(event) {
+            const rect = document.getElementById('mapCanvas').getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
             
-            changeView('viewConfig');
-            document.getElementById('displayRoomCode').innerText = `CODE: ${generatedRoomCode}`;
-            initSetupBoundaryMap();
+            clickPoints.push(`${x},${y}`);
+            document.getElementById('canvasHint').style.display = 'none';
+            document.getElementById('polyShape').setAttribute('points', clickPoints.join(' '));
         }
 
-        function promptRoomCode() {
-            let codeInput = prompt("กรอกรหัสห้อง 6 หลักของเพื่อนเพื่อเข้าร่วม:");
-            if(codeInput) {
-                generatedRoomCode = codeInput.toUpperCase();
-                alert(`🔗 เข้าร่วมห้องรหัส ${generatedRoomCode} สำเร็จ!`);
-                countPlayers = 4; // จำลองเครื่องเพื่อนรวมกลุ่มเข้าห้องครบ 4 คนขึ้นไปพอดีตามเงื่อนไขกติกา
-                goToLobbyRoom(true);
+        function connectAsPlayer() {
+            alert("🔗 เชื่อมต่อเข้าสู่ห้องเซิร์ฟเวอร์ของเพื่อนสำเร็จ!");
+            simulateConnectedPlayers = limitMinPlayers; // จำลองให้คนครบกติกาเพื่อทดสอบระบบได้
+            saveConfigAndGoToLobby();
+        }
+
+        function saveConfigAndGoToLobby() {
+            limitMinPlayers = parseInt(document.getElementById('cfgMinPlayers')?.value || 3);
+            limitMatchTime = parseInt(document.getElementById('cfgTime')?.value || 8) * 60;
+            
+            changeView('screenLobby');
+            initHardwareSystem();
+            updateLobbyInterface();
+        }
+
+        function initHardwareSystem() {
+            document.getElementById('cameraLayer').style.display = 'block';
+            const v = document.getElementById('hardwareWebcam');
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(s => v.srcObject = s).catch(e => {});
             }
         }
 
-        // ระบบดึง Google Maps เพื่อลากขอบเขตแนวกำแพงจากจุดเริ่มต้นไปยังจุดสิ้นสุด
-        function initSetupBoundaryMap() {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                currentLat = pos.coords.latitude;
-                currentLng = pos.coords.longitude;
-                
-                const mapOpts = { zoom: 16, center: new google.maps.LatLng(currentLat, currentLng), disableDefaultUI: true };
-                const mapSetup = new google.maps.Map(document.getElementById("googleMapSetup"), mapOpts);
-
-                // ระบบลากเส้นกำแพงเริ่มต้นไปยังจุดสิ้นสุด (Polyline Boundary Wall)
-                const wallCoordinates = [
-                    new google.maps.LatLng(currentLat - 0.001, currentLng - 0.001),
-                    new google.maps.LatLng(currentLat + 0.001, currentLng + 0.001)
-                ];
-                new google.maps.Polyline({
-                    path: wallCoordinates,
-                    editable: true, // อนุญาตให้ผู้เล่นคลิกลากขยับแนวกำแพงกว้างยาวได้เองตามใจชอบ
-                    strokeColor: '#ef4444',
-                    strokeOpacity: 1.0,
-                    strokeWidth: 4,
-                    map: mapSetup
-                });
-            }, () => {}, { enableHighAccuracy: true });
-        }
-
-        function goToLobbyRoom(isGuest) {
-            if(!isGuest) {
-                totalQuestsConfig = parseInt(document.getElementById('inpQuests')?.value || 5);
-                matchDuration = parseInt(document.getElementById('inpTime')?.value || 8) * 60;
-                countPlayers = 4; // จำลองจำลองสมาชิกทีมงานครบเกณฑ์ขั้นต่ำเพื่อทดสอบระบบหน้าถัดไป
-            }
+        // ระบบเช็กจำนวนผู้เล่นขั้นต่ำ ถ้าไม่ถึงกำหนดเริ่มเล่นไม่ได้ตามกฎ
+        function updateLobbyInterface() {
+            const container = document.getElementById('playerListContainer');
+            container.innerHTML = "";
             
-            changeView('viewLobby');
-            document.getElementById('lobbyCodeLabel').innerText = `รหัสห้องเข้าเกม: ${generatedRoomCode}`;
-            
-            const listContainer = document.getElementById('lobbyPlayersList');
-            listContainer.innerHTML = "";
-            for(let i = 1; i < countPlayers; i++) {
-                listContainer.innerHTML += `<div class="member-row">👥 เครื่องสมาชิกผู้เล่นทีมงานที่ ${i+1} <span style="margin-left:auto; color:#22c55e;">📍 เชื่อมต่อสำเร็จ</span></div>`;
+            // จำลองแสดงผลรายชื่อเพื่อนรวมกลุ่มเข้ามา
+            for(let i = 1; i < simulateConnectedPlayers; i++) {
+                container.innerHTML += `<div class="member-row">👥 สมาชิกผู้เล่นทีมงานเครื่องที่ ${i} <span style="margin-left:auto; color:#22c55e;">📍 สแตนด์บาย</span></div>`;
             }
 
-            const alertLabel = document.getElementById('lobbyAlert');
-            const btnLaunch = document.getElementById('btnStartGame');
-            
-            // 🌟 เงื่อนไขกฎเหล็ก: สมาชิกต้องครบ 4 คนขึ้นไปเท่านั้นถึงจะกดเริ่มได้เด็ดขาด!
-            if(countPlayers < 4) {
-                alertLabel.innerText = `❌ สมาชิกไม่ถึง 4 คนตามกติกา (ปัจจุบันในห้องมี ${countPlayers} คน) เริ่มไม่ได้`;
-                alertLabel.style.color = "#ef4444";
+            const statusLabel = document.getElementById('lobbyStatus');
+            const btnLaunch = document.getElementById('btnLaunchMatch');
+
+            if((simulateConnectedPlayers) < limitMinPlayers) {
+                statusLabel.innerText = `❌ ขาดอีก ${limitMinPlayers - simulateConnectedPlayers} เครื่อง (ตั้งเป้าไว้ที่ ${limitMinPlayers} คนต่ำสุด)`;
+                statusLabel.style.color = "#ef4444";
                 btnLaunch.classList.add('disabled');
             } else {
-                alertLabel.innerText = `✅ สมาชิกเชื่อมต่อครบ 4 คนขึ้นไปแล้ว ปลดล็อกระบบสุ่มจุดเกิด`;
-                alertLabel.style.color = "#22c55e";
+                statusLabel.innerText = `✅ สมาชิกครบตามจำนวนขั้นต่ำแล้ว ปลดล็อกระบบนำทาง`;
+                statusLabel.style.color = "#22c55e";
                 btnLaunch.classList.remove('disabled');
             }
         }
 
-        // หน้าตรวจสอบตำแหน่งตัวเองเพื่อเดินเข้าจุดเกิดจริง
-        function enterSpawnNavigationPhase() {
-            changeView('viewSpawnNav');
+        function launchSpawnPhase() {
+            changeView('screenSpawn');
             
-            const mapOpts = { zoom: 17, center: new google.maps.LatLng(currentLat, currentLng), mapTypeId: google.maps.MapTypeId.HYBRID, disableDefaultUI: true };
-            const mapSpawn = new google.maps.Map(document.getElementById("googleMapSpawn"), mapOpts);
-
-            // ปักหมุดบอกพิกัดจุดเกิดของผู้เล่น
-            const spawnTargetLat = currentLat + 0.0003;
-            const spawnTargetLng = currentLng + 0.0003;
-            
-            new google.maps.Marker({ position: new google.maps.LatLng(spawnTargetLat, spawnTargetLng), map: mapSpawn, title: "จุดเกิดของคุณ" });
-            // หมุดบอกตำแหน่งตัวเองเรียบร้อยเรียลไทม์
-            new google.maps.Marker({ position: new google.maps.LatLng(currentLat, currentLng), map: mapSpawn, icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' });
-
-            // คอยคำนวณวัดระยะทางว่าถึงที่หรือยัง
-            const trackingWalk = setInterval(() => {
-                if(distanceToSpawn > 0) {
-                    distanceToSpawn -= 6;
-                    if(distanceToSpawn <= 0) distanceToSpawn = 0;
-                    document.getElementById('spawnBannerText').innerHTML = `🏃‍♂️ ตรวจสอบตำแหน่งพิกัดตัวเอง... <span style="color:#ef4444">เหลือระยะห่าง: ${distanceToSpawn} เมตร</span>`;
+            // จำลองการเดินก้าวเข้าหาจุดเกิดของตัวเองในชีวิตจริงทีละนิด
+            const distanceInterval = setInterval(() => {
+                if(mockDistanceToSpawn > 0) {
+                    mockDistanceToSpawn -= 4; // จำลองระยะลดลงเรื่อยๆ เหมือนกำลังเดินจริง
+                    if(mockDistanceToSpawn <= 0) mockDistanceToSpawn = 0;
                     
-                    // 🌟 เมื่อเดินถึงจุดเกิดสำเร็จ (ระยะห่างเป็น 0) ปุ่มพร้อมตรงกลางจอถึงจะได้รับการอนุมัติให้กด
-                    if(distanceToSpawn === 0) {
-                        clearInterval(trackingWalk);
-                        document.getElementById('spawnBannerText').innerHTML = `🎉 <span style="color:#22c55e">คุณถึงจุดเกิดแล้ว!</span> ปุ่มพร้อมตรงกลางจอถูกปลดล็อกระบบทำงาน`;
-                        document.getElementById('btnReadyActive').classList.remove('disabled');
+                    document.getElementById('spawnAlertText').innerText = `🚶‍♂️ กำลังเดินเข้าจุดเกิด... ระยะห่างเหลืออีก: ${mockDistanceToSpawn} เมตร`;
+                    
+                    // ปรับพิกัดจุดสีบนหน้าจอให้ขยับเข้าหากันตามจริง
+                    document.getElementById('nodeUser').style.top = (35 + (mockDistanceToSpawn * 1)) + "%";
+                    
+                    // 🌟 เงื่อนไขสำคัญ: ต้องถึงจุดเกิด (ระยะห่างเป็น 0) ปุ่มพร้อมสีเขียวถึงจะปลดล็อกและเด้งขึ้นมาพร้อมกัน
+                    if(mockDistanceToSpawn === 0) {
+                        clearInterval(distanceInterval);
+                        document.getElementById('spawnAlertText').innerHTML = `🎉 <span style="color:#22c55e">คุณถึงจุดเกิดแล้ว!</span> ปุ่มพร้อมกลางจอได้รับการอนุมัติใช้งาน`;
+                        document.getElementById('btnReadyTrigger').classList.remove('disabled');
                     }
                 }
             }, 800);
         }
 
-        // 🎲 สุ่มบทบาทอัตโนมัติห้ามเลือกฝั่งเองเด็ดขาด + สุ่มกระจายจุดภารกิจสไตล์ Among Us
-        function randomizeRolesAndTasks() {
-            const rolePool = ['survivor', 'police', 'killer'];
-            finalAssignedRole = rolePool[Math.floor(Math.random() * rolePool.length)];
+        // ระบบทำการสุ่มบทบาทอัตโนมัติพร้อมกันทุกเครื่องหลังจากก้าวเข้าจุดเรียบร้อย
+        function triggerDeviceReady() {
+            alert("🎲 ทุกเครื่องก้าวเข้าจุดครบแล้ว! ระบบทำการ Random สุ่มบทบาทให้คุณทันที...");
+            
+            const randomPool = ['survivor', 'police', 'killer'];
+            const myFinalRole = randomPool[Math.floor(Math.random() * randomPool.length)];
 
-            alert("🎲 ทุกเครื่องก้าวเข้าพิกัดครบแล้ว! ระบบกำลังสุ่มกระจายบทบาทและจุดทำเควสเหมือน Among Us...");
+            if(myFinalRole === 'survivor') changeView('hudSurvivor');
+            if(myFinalRole === 'police') changeView('hudPolice');
+            if(myFinalRole === 'killer') changeView('hudKiller');
 
-            // เปิดใช้งานโหมดกล้องฮาร์ดแวร์จริงเป็นพื้นหลัง HUD หลัก
-            document.getElementById('webcamStream').style.display = "block";
-            document.getElementById('webcamOverlay').style.display = "block";
-            if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(s => {
-                    document.getElementById('webcamStream').srcObject = s;
-                }).catch(e => {});
-            }
-
-            changeView('viewGameHUD');
-            setupHUDInterface();
-
-            // เริ่มนาฬิกานับเวลาถอยหลังการแข่งขันจริง
+            // สั่งเริ่มนับเวลาถอยหลังการแข่งขันตามค่าที่หัวหน้าตั้งไว้
             setInterval(() => {
-                if(matchDuration > 0) {
-                    matchDuration--;
-                    let m = Math.floor(matchDuration / 60);
-                    let s = matchDuration % 60;
-                    document.getElementById('gameTimer').innerText = (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+                if(limitMatchTime > 0) {
+                    limitMatchTime--;
+                    let m = Math.floor(limitMatchTime / 60);
+                    let s = limitMatchTime % 60;
+                    let display = (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+                    document.querySelectorAll('.time-counter').forEach(el => el.innerText = display);
                 }
             }, 1000);
         }
 
-        function setupHUDInterface() {
-            const badge = document.getElementById('roleBadge');
-            const actionBtn = document.getElementById('btnMainAction');
-
-            if(finalAssignedRole === 'survivor') {
-                badge.innerText = "ฝ่าย: คนธรรมดา"; badge.style.background = "#eab308";
-                actionBtn.innerText = "ซ่อมเควส"; actionBtn.style.borderColor = "#eab308"; actionBtn.style.color = "#eab308";
-            } else if(finalAssignedRole === 'police') {
-                badge.innerText = "ฝ่าย: ตำรวจ"; badge.style.background = "#3b82f6";
-                actionBtn.innerText = "ยิงสกัด"; actionBtn.style.borderColor = "#3b82f6"; actionBtn.style.color = "#3b82f6";
-            } else {
-                badge.innerText = "ฝ่าย: ฆาตกร"; badge.style.background = "#ef4444";
-                actionBtn.innerText = "ลอบสังหาร"; actionBtn.style.borderColor = "#ef4444"; actionBtn.style.color = "#ef4444";
-            }
+        function toggleRadarOverlay(showQ) {
+            const overlay = document.getElementById('radarOverlay');
+            overlay.style.display = overlay.style.display === 'flex' ? 'none' : 'flex';
+            document.getElementById('radarQNode').style.display = showQ ? 'block' : 'none';
         }
 
-        // ควบคุมระบบเปิด-ปิดหน้าต่างแผนที่ซ้อนทับ (เมื่อกดรูปแผนที่ 🗺️ บนหน้าจอกล้อง)
-        function toggleMapOverlay(open) {
-            const container = document.getElementById('mapOverlayContainer');
-            container.style.display = open ? 'flex' : 'none';
+        // ระบบคูลดาวน์ปุ่มยิง/ปาแบบแอปจริง
+        function fireSkill(role, secs) {
+            if(skillLock[role]) return;
+            skillLock[role] = true;
 
-            if(open) {
-                const mapOpts = { zoom: 17, center: new google.maps.LatLng(currentLat, currentLng), mapTypeId: google.maps.MapTypeId.ROADMAP, disableDefaultUI: true };
-                const mapGameplay = new google.maps.Map(document.getElementById("googleMapGameplay"), mapOpts);
+            const btn = document.getElementById(role === 'police' ? 'btnPFire' : 'btnKThrow');
+            const label = document.getElementById(role === 'police' ? 'cdP' : 'cdK');
+            
+            btn.classList.add('disabled');
+            let time = secs;
 
-                // มาร์กเกอร์แสดงจุดตำแหน่งตัวเองเพื่อให้รู้ทิศทางปัจจุบัน
-                new google.maps.Marker({ position: new google.maps.LatLng(currentLat, currentLng), map: mapGameplay, title: "ตำแหน่งของคุณในเวลานี้" });
-
-                // 📦 สุ่มกระจายจุดวัตถุประสงค์ทำเควสตามจำนวนพิกัดรอบตัวสไตล์ Among Us
-                document.getElementById('taskStatusText').innerText = `ระบบทําการกระจายพิกัดเควสสุ่มจำนวน ${totalQuestsConfig} จุด ลงบนพื้นที่จริงแล้ว!`;
-                for(let i=0; i<totalQuestsConfig; i++) {
-                    let offsetLat = (Math.random() - 0.5) * 0.0015;
-                    let offsetLng = (Math.random() - 0.5) * 0.0015;
-                    new google.maps.Marker({
-                        position: new google.maps.LatLng(currentLat + offsetLat, currentLng + offsetLng),
-                        map: mapGameplay,
-                        icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
-                        title: `จุดเควสที่ ${i+1}`
-                    });
+            const tick = setInterval(() => {
+                time -= 0.05;
+                label.innerText = Math.max(0, time).toFixed(2) + "s";
+                if(time <= 0) {
+                    clearInterval(tick);
+                    skillLock[role] = false;
+                    btn.classList.remove('disabled');
+                    label.innerText = "READY";
                 }
-            }
-        }
-
-        function executeMainAction() {
-            alert(`⚡ ทำการเปิดระบบใช้งานสกิลประมวลผลคำสั่งของฝ่าย [${finalAssignedRole.toUpperCase()}] สำเร็จ!`);
+            }, 50);
+            alert(role === 'police' ? '💥 ยิงกระสุนโจมตีเคลียร์พื้นที่!' : '🗡️ ปาอาวุธระยะไกลสกัดกั้นเป้าหมาย!');
         }
     </script>
 </body>
