@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soul Companion - แอปพลิเคชันเพื่อนคู่คิดสำหรับทุกคน</title>
+    <style>
+        /* ตั้งค่าฟอนต์และธีมสีพาสเทลฮีลใจ */
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Kanit', sans-serif;
+        }
+
+        body {
+            background-color: #F0F4F8;
+            color: #334E68;
+            line-height: 1.6;
+        }
+
+        /* Header ส่วนหัวของเว็บ */
+        header {
+            background: linear-gradient(135deg, #B2EBF2 0%, #E1BEE7 100%);
+            padding: 80px 20px;
+            text-align: center;
+            border-bottom-left-radius: 40px;
+            border-bottom-right-radius: 40px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .logo-space {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: #243E56;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        header p {
+            font-size: 1.2rem;
+            color: #486581;
+            max-width: 600px;
+            margin: 0 auto 25px auto;
+        }
+
+        /* ปุ่มกดจำลอง */
+        .btn {
+            display: inline-block;
+            background-color: #6200EE;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(98, 0, 238, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* ส่วนเนื้อหาหลัก */
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.8rem;
+            color: #243E56;
+        }
+
+        /* การจัดเลย์เอาต์ฟีเจอร์เด่น */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+
+        .feature-card {
+            background-color: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            border: 1px solid #E2E8F0;
+            text-align: center;
+            transition: translateY 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-card h3 {
+            margin-bottom: 10px;
+            color: #243E56;
+        }
+
+        /* ส่วนท้ายของเว็บ */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: #627D98;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-space">📱✨</div>
+        <h1>Soul Companion</h1>
+        <p>แอปพลิเคชัน All-in-One Life Companion ฮีลใจ วางแผนชีวิต และเติบโตไปพร้อมกับสัตว์เลี้ยงดิจิทัลคู่หูของคุณ</p>
+        <a href="#" target="_blank" class="btn">ลองกดเล่น Figma Prototype</a>
+    </header>
+
+    <div class="container">
+        <h2 class="section-title">ฟีเจอร์เด่นที่เรากำลังพัฒนา</h2>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🏠</div>
+                <h3>My Companion Room</h3>
+                <p>บ้านสัตว์เลี้ยง 3D พร้อมแถบ Battery Sync และปุ่มขอกอดด่วน Emergency Hug</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">⏱️</div>
+                <h3>Smart Focus Timetable</h3>
+                <p>ล็อกสิ่งเร้าตอนตั้งใจเรียน พร้อมย่อขนาดน้องสัตว์เลี้ยงเป็น Widget 2D เพื่อประหยัดพลังงาน</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">💬</div>
+                <h3>Soul Chat AI</h3>
+                <p>ห้องนั่งเล่นพูดคุยปรึกษา ปลอดภัยด้วยระบบประมวลผลสดบนเครื่องและลบภาพทันที</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🌤️</div>
+                <h3>Weather Guardian</h3>
+                <p>เชื่อมโยงสภาพอากาศจริงและฝุ่น PM2.5 หลังบ้าน เพื่อเตือนให้ผู้ใช้ดูแลสุขภาพผ่านท่าทางของน้อง</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2026 Soul Companion Team. All Rights Reserved. พัฒนาขึ้นเพื่อการประกวดนวัตกรรม</p>
+    </footer>
+
+</body>
+</html>
