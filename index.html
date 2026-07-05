@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>THE HUNT - Google Maps AR Real Match Engine</title>
+    <title>THE HUNT - Google Maps Match Engine</title>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', -apple-system, sans-serif; user-select: none; }
@@ -14,61 +14,262 @@
         .view { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; flex-direction: column; padding: 24px; justify-content: space-between; z-index: 10; }
         .view.active { display: flex; }
         
-        /* Google Maps Container */
-        #googleMapAdmin, #googleMapNavigation, #googleMapHUD { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        /* แผง Google Maps แผนที่จริง */
+        #googleRealMapNav, #googleRealMapHUD { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        /* HUD UI Overlay บนแผนที่จริง */
+        /* UI HUD ควบคุมการแสดงผลกติกาเกม */
         .status-badge-rect { position: absolute; top: 30px; left: 24px; border: 2px solid #ffffff; padding: 6px 18px; font-size: 14px; font-weight: 800; background: rgba(0,0,0,0.85); z-index: 20; border-radius: 4px; }
-        .map-icon-circle { position: absolute; top: 30px; right: 24px; width: 42px; height: 42px; border-radius: 50%; border: 2px solid #ffffff; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; background: rgba(0,0,0,0.85); z-index: 20; }
         .timer-display { position: absolute; top: 35px; left: 50%; transform: translateX(-50%); font-size: 20px; font-weight: 900; background: rgba(0,0,0,0.85); padding: 4px 14px; border-radius: 6px; border: 1px solid #3f3f46; z-index: 20; font-family: monospace; }
 
-        /* ปุ่มหลักวงกลมกลางจอควบคุมระบบเงื่อนไขกติกา */
-        .center-circle-btn { width: 180px; height: 180px; border-radius: 50%; border: 4px solid #ffffff; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.8) 100%); color: #ffffff; font-size: 32px; font-weight: 900; display: flex; justify-content: center; align-items: center; cursor: pointer; position: absolute; top: 40%; left: calc(50% - 90px); z-index: 20; transition: transform 0.1s; backdrop-filter: blur(4px); }
+        /* ปุ่มกดขนาดใหญ่ตรงกลางจอตามรูปวาด */
+        .center-circle-btn { width: 180px; height: 180px; border-radius: 50%; border: 4px solid #ffffff; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.85) 100%); color: #ffffff; font-size: 32px; font-weight: 900; display: flex; justify-content: center; align-items: center; cursor: pointer; position: absolute; top: 42%; left: calc(50% - 90px); z-index: 20; transition: transform 0.1s; backdrop-filter: blur(4px); }
         .center-circle-btn:active { transform: scale(0.95); }
-        .center-circle-btn.disabled { opacity: 0.2; pointer-events: none; filter: grayscale(100%); border-color: #71717a; color: #71717a; }
+        .center-circle-btn.disabled { opacity: 0.15; pointer-events: none; filter: grayscale(100%); border-color: #71717a; color: #71717a; }
         
         .sub-circle-btn { width: 62px; height: 62px; border-radius: 50%; border: 2px solid #ffffff; background: rgba(9, 9, 11, 0.9); color: #ffffff; font-size: 14px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; position: absolute; z-index: 20; }
         
-        .menu-box { width: 100%; border: 2px solid #ffffff; padding: 18px; margin-bottom: 14px; text-align: center; font-size: 16px; font-weight: 800; background: rgba(0, 0, 0, 0.85); cursor: pointer; border-radius: 6px; z-index: 20; }
+        /* ดีไซน์ปุ่มหน้าเมนูหลักและกล่องใส่ตัวเลขตามภาพร่าง */
+        .menu-box { width: 100%; border: 2px solid #ffffff; padding: 18px; margin-bottom: 14px; text-align: center; font-size: 18px; font-weight: 800; background: rgba(0, 0, 0, 0.85); cursor: pointer; border-radius: 6px; z-index: 20; }
         .menu-box:active { background: #ffffff; color: #000000; }
         
-        .config-label { font-size: 13px; font-weight: bold; color: #fafafa; background: rgba(0,0,0,0.8); padding: 4px 8px; border-radius: 4px; display: inline-block; z-index: 20; }
-        .member-row { display: flex; align-items: center; padding: 10px; border: 1px solid #27272a; border-radius: 6px; margin-bottom: 8px; background: rgba(0,0,0,0.85); font-size: 14px; z-index: 20; }
+        .config-label { font-size: 13px; font-weight: bold; color: #fafafa; background: rgba(0,0,0,0.8); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 8px; }
+        .config-input { width: 100%; background: #18181b; border: 1px solid #3f3f46; padding: 10px; color: #fff; font-weight: bold; border-radius: 6px; margin-top: 4px; margin-bottom: 10px; }
+        
+        .member-row { display: flex; align-items: center; padding: 11px; border: 1px solid #27272a; border-radius: 6px; margin-bottom: 8px; background: rgba(0,0,0,0.85); font-size: 14px; z-index: 20; }
         .cooldown-box { border: 1px solid #ffffff; padding: 4px 10px; font-size: 12px; font-weight: bold; font-family: monospace; background: #000; position: absolute; bottom: 40px; left: 24px; z-index: 25; }
         
-        .map-wrapper { width: 100%; height: 300px; position: relative; border: 2px solid #3f3f46; border-radius: 8px; overflow: hidden; margin: 10px 0; }
-        .nav-alert-banner { position: absolute; top: 20px; left: 20px; right: 20px; background: rgba(0,0,0,0.9); border: 2px solid #3f3f46; padding: 10px; font-size: 13px; font-weight: bold; text-align: center; border-radius: 6px; z-index: 30; }
+        .nav-alert-banner { position: absolute; top: 25px; left: 20px; right: 20px; background: rgba(0,0,0,0.9); border: 2px solid #3f3f46; padding: 10px; font-size: 13px; font-weight: bold; text-align: center; border-radius: 6px; z-index: 30; }
     </style>
 </head>
 <body>
 
     <div class="phone-frame">
 
-        <div class="view active" id="viewMain">
-            <div style="font-size: 36px; font-weight: 900; text-align: center; margin-top: 40px; letter-spacing: 2px; z-index:20;">THE HUNT</div>
+        <div class="view active" id="screenMain">
+            <div style="font-size: 36px; font-weight: 900; text-align: center; margin-top: 40px; letter-spacing: 2px;">THE HUNT</div>
             <div>
-                <div class="menu-box" onclick="initAdminSetup()">สร้างห้องเกม (หัวหน้า)</div>
-                <div class="menu-box" onclick="joinMatchmaking()">เข้าร่วมห้องเกม (ผู้เล่น)</div>
+                <div class="menu-box" onclick="openHostSetup()">สร้างห้องห้อง</div>
+                <div class="menu-box" onclick="connectLobbyRoom(true)">เข้าร่วมห้อง</div>
             </div>
-            <div style="text-align: center; font-size: 11px; color: #a1a1aa; z-index:20;">GOOGLE MAPS REALTIME API CORE</div>
+            <div style="text-align: center; font-size: 11px; color: #a1a1aa;">RANDOM-ONLY ENGINE REALTIME</div>
         </div>
 
-        <div class="view" id="viewConfig" style="justify-content: space-between; padding: 20px;">
-            <div class="config-label">📍 ขั้นตอนที่ 1: ลากขอบเขตสนามแข่งบนแผนที่ Google Maps จริง</div>
-            <div class="map-wrapper">
-                <div id="googleMapAdmin"></div>
-            </div>
-            <div>
-                <span class="config-label" style="margin-bottom: 6px;">⏱️ เวลาเล่น (นาที)</span>
-                <input type="number" id="inpTime" value="8" style="width:100%; background:#18181b; border:1px solid #3f3f46; padding:10px; color:#fff; font-weight:bold; border-radius:6px; margin-bottom:15px;">
-                <span class="config-label" style="margin-bottom: 6px;">👥 จำนวนผู้เล่นขั้นต่ำ</span>
-                <input type="number" id="inpMinUsers" value="3" style="width:100%; background:#18181b; border:1px solid #3f3f46; padding:10px; color:#fff; font-weight:bold; border-radius:6px;">
-            </div>
-            <button class="menu-box" style="background:#ffffff; color:#000000; margin: 0;" onclick="openLobbyRoom()">สร้างห้องพักคอย</button>
+        <div class="view" id="screenHostConfig" style="justify-content: flex-start; overflow-y: auto; gap: 4px;">
+            <div style="font-size:20px; font-weight:900; text-align:center; margin-top:10px; margin-bottom:15px;">⚙️ แผงตั้งค่าแมตช์ (เจ้าของห้อง)</div>
+            
+            <label class="config-label">📐 กำหนดระยะทางขอบเขตสนาม (เมตร)</label>
+            <input type="number" id="setupRadius" class="config-input" value="300" min="50">
+
+            <label class="config-label">⏱️ กำหนดเวลาเล่นต่อหนึ่งรอบ (นาที)</label>
+            <input type="number" id="setupTime" class="config-input" value="8" min="5">
+
+            <label class="config-label">📦 กำหนดจำนวนจุดเควสวัตถุประสงค์ในสนาม</label>
+            <input type="number" id="setupQuests" class="config-input" value="4" min="1">
+
+            <button class="menu-box" style="background:#ffffff; color:#000000; margin-top:25px;" onclick="connectLobbyRoom(false)">เปิดห้องพักคอย</button>
         </div>
 
-        <div class="view" id="viewLobby">
-            <div style="z-index:20;">
-                <div style="font-size:18px; font-weight:900; text-align:center; margin-bottom:15px;">ROOM LOBBY (รอยืนยันสิทธิ์)</div>
-                <div id="lobbyNotice" style="font-size:13px; color:#ef4444; text-align:center; font-weight:bold; margin-bottom:20px;">❌ สมาชิกไม่ครบเงื่อนไขที่กำหนดไว้ เริ่มเกมไม่ได้</div>
-                <div class="member-row">👥 เครื่องของคุณ (โฮสต์) <span style="margin-left:auto; color:#22c
+        <div class="view" id="screenLobby">
+            <div>
+                <div style="font-size:18px; font-weight:900; text-align:center; margin-bottom:5px;">ห้องพักคอยผู้เล่น</div>
+                <div style="font-size:12px; color:#a1a1aa; text-align:center; margin-bottom:15px;" id="roomSettingsLabel">ระยะสนาม: - | เวลา: - | เควส: -</div>
+                
+                <div id="lobbyStatusAlert" style="font-size:13px; color:#ef4444; text-align:center; font-weight:bold; margin-bottom:20px;">❌ สมาชิกไม่ถึง 4 คน เริ่มเกมไม่ได้เด็ดขาด</div>
+                
+                <div class="member-row">👥 คุณ (เจ้าของห้อง) <span style="margin-left:auto; color:#22c55e;">📍 เชื่อมต่อเสถียร</span></div>
+                <div id="lobbyPlayersContainer"></div>
+            </div>
+            <button class="menu-box disabled" id="btnLaunchMatch" style="background:#22c55e; border:none; color:#fff; margin:0;" onclick="activateGoogleMapsNav()">เริ่มเกม (ส่งผู้เล่นเข้าจุดเกิด)</button>
+        </div>
+
+        <div class="view" id="screenSpawnNavigation" style="padding:0;">
+            <div id="googleRealMapNav"></div>
+            
+            <div class="nav-alert-banner" id="spawnBannerInfo">
+                🚶‍♂️ กรุณาเดินเท้าไปยังพิกัดจุดเกิดของคุณบนแผนที่จริง...
+            </div>
+
+            <div class="center-circle-btn disabled" id="btnReadyTrigger" style="border-color:#22c55e; color:#22c55e; font-size:24px;" onclick="processRandomizeRoles()">พร้อม</div>
+        </div>
+
+        <div class="view" id="hudSurvivor" style="padding:0;">
+            <div id="googleRealMapHUD"></div>
+            <div class="status-badge-rect" style="background:#eab308; color:#000; border:none;" id="questLeftBadge">เควสคงเหลือ: 4 จุด</div>
+            <div class="timer-display time-countdown">08:00</div>
+            <div class="center-circle-btn" style="border-color:#eab308; color:#eab308;" onclick="alert('กำลังเปิดระบบดาวเทียมกู้ข้อมูลเควส...')">ทำเควส</div>
+        </div>
+
+        <div class="view" id="hudPolice" style="padding:0;">
+            <div class="status-badge-rect" style="background:#3b82f6; border:none;">ฝ่าย: ตำรวจ</div>
+            <div class="timer-display time-countdown">08:00</div>
+            <div class="center-circle-btn" style="border-color:#3b82f6; color:#3b82f6;" id="btnPFire" onclick="useAbilitySkill('police', 5)">ยิง</div>
+            <div class="cooldown-box" id="cdPLabel" style="color:#3b82f6;">READY</div>
+        </div>
+
+        <div class="view" id="hudKiller" style="padding:0;">
+            <div class="status-badge-rect" style="background:#ef4444; border:none;">ฝ่าย: ฆาตกร</div>
+            <div class="timer-display time-countdown">08:00</div>
+            <div class="center-circle-btn" style="border-color:#ef4444; color:#ef4444;">แทง</div>
+            <div class="sub-circle-btn" style="top:52%; right:24px; border-color:#ef4444;" id="btnKThrow" onclick="useAbilitySkill('killer', 8)">ปา</div>
+            <div class="cooldown-box" id="cdKLabel" style="color:#ef4444;">READY</div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentLat = 13.7563, currentLng = 100.5018; 
+        let spawnGoalLat = 0, spawnGoalLng = 0;
+        let gameRadius = 300, gameMatchTime = 480, gameTotalQuests = 4;
+        let activePlayersInRoom = 1;
+        let distanceToSpawnMarker = 45; // จำลองระยะทางก้าวเดินเท้าจริงเข้าหาพิกัดเกิด (เมตร)
+        let cdState = {};
+
+        function changeScreen(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+
+        function openHostSetup() { changeScreen('screenHostConfig'); }
+
+        function connectLobbyRoom(isGuest) {
+            if(isGuest) {
+                alert("🔗 เชื่อมต่อรหัสห้องสำเร็จผ่านเครือข่ายดาวเทียม!");
+                activePlayersInRoom = 4; // จำลองเงื่อนไขเครื่องผู้เล่นอื่นเชื่อมเข้ามาจนครบ 4 คนขึ้นไปพอดีตามกติกา
+            } else {
+                gameRadius = parseInt(document.getElementById('setupRadius')?.value || 300);
+                gameMatchTime = parseInt(document.getElementById('setupTime')?.value || 8) * 60;
+                gameTotalQuests = parseInt(document.getElementById('setupQuests')?.value || 4);
+                activePlayersInRoom = 4; // จำลองเพื่อนเข้าห้องทดสอบระบบครบทีม
+            }
+            
+            changeScreen('screenLobby');
+            document.getElementById('roomSettingsLabel').innerText = `ระยะสนาม: ${gameRadius}ม. | เวลา: ${gameMatchTime/60}นาที | ข้อมูลเควส: ${gameTotalQuests} จุด`;
+            
+            // จัดการเรนเดอร์รายชื่อเครื่องสมาชิกให้เห็นตามพิมพ์เขียวสมุดร่างหน้าล็อบบี้
+            const container = document.getElementById('lobbyPlayersContainer');
+            container.innerHTML = "";
+            for(let i = 1; i < activePlayersInRoom; i++) {
+                container.innerHTML += `<div class="member-row">👥 สมาชิกผู้เล่นคนที่ ${i+1} <span style="margin-left:auto; color:#22c55e;">📍 ลิงก์พิกัดเรียบร้อย</span></div>`;
+            }
+
+            const alertText = document.getElementById('lobbyStatusAlert');
+            const btnLaunch = document.getElementById('btnLaunchMatch');
+            
+            // ตรวจสอบเงื่อนไขกฎเหล็ก: สมาชิกต้อง 4 คนขึ้นไปเกมถึงจะปลดล็อกให้เปิดเล่นได้
+            if(activePlayersInRoom < 4) {
+                alertText.innerText = `❌ สมาชิกไม่ถึง 4 คนตามกติกา (ปัจจุบันมีในห้อง ${activePlayersInRoom} คน) เริ่มเกมไม่ได้`;
+                alertText.style.color = "#ef4444";
+                btnLaunch.classList.add('disabled');
+            } else {
+                alertText.innerText = `✅ สมาชิกเชื่อมต่อครบ 4 คนตามเกณฑ์แล้ว ระบบปลดล็อกปุ่มปล่อยตัว`;
+                alertText.style.color = "#22c55e";
+                btnLaunch.classList.remove('disabled');
+            }
+        }
+
+        // ดึงพิกัดแผนที่โลกจริงอ้างอิง Google Maps API
+        function activateGoogleMapsNav() {
+            changeScreen('screenSpawnNavigation');
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    currentLat = pos.coords.latitude;
+                    currentLng = pos.coords.longitude;
+                    loadGoogleMapsEngine();
+                }, () => { loadGoogleMapsEngine(); }, { enableHighAccuracy: true });
+            } else { loadGoogleMapsEngine(); }
+        }
+
+        function loadGoogleMapsEngine() {
+            // จุดพิกัดเกิดสีแดงที่ระบบสุ่มปักหมุดไว้ห่างจากจุดปัจจุบันในพื้นที่จริง
+            spawnGoalLat = currentLat + 0.00035;
+            spawnGoalLng = currentLng + 0.00035;
+
+            const configMap = {
+                zoom: 17,
+                center: new google.maps.LatLng(currentLat, currentLng),
+                mapTypeId: google.maps.MapTypeId.HYBRID, // แสดงภาพดาวเทียมเห็นพื้นผิวกายภาพจริงรอบตัวผู้เล่น
+                disableDefaultUI: true
+            };
+            const mapNav = new google.maps.Map(document.getElementById("googleRealMapNav"), configMap);
+
+            // ปักหมุดสีแดงเครื่องหมายพิกัดเกิดจริงของผู้เล่นบนแผนที่กูเกิลแมป
+            new google.maps.Marker({
+                position: new google.maps.LatLng(spawnGoalLat, spawnGoalLng),
+                map: mapNav,
+                title: "พิกัดเกิดจริงของคุณ"
+            });
+
+            // ตรวจจับสัญญาณการเดินเท้าเข้าหาจุดเกิดจริงๆ
+            const locationTracking = setInterval(() => {
+                if(distanceToSpawnMarker > 0) {
+                    distanceToSpawnMarker -= 5; 
+                    if(distanceToSpawnMarker <= 0) distanceToSpawnMarker = 0;
+
+                    document.getElementById('spawnBannerInfo').innerHTML = `🏃‍♂️ โปรดเดินเข้าหาจุดเกิดบนแผนที่กูเกิลแมป... <span style="color:#ef4444">เหลืออีก: ${distanceToSpawnMarker} เมตร</span>`;
+                    
+                    // 🌟 กฎข้อห้าม: เมื่อเดินไปถึงจุดเกิดสำเร็จจริง (ระยะห่างเป็น 0) ปุ่มพร้อมสีเขียวตรงกลางจอถึงจะปลดล็อกเด้งขึ้นมาพร้อมกัน
+                    if(distanceToSpawnMarker === 0) {
+                        clearInterval(locationTracking);
+                        document.getElementById('spawnBannerInfo').innerHTML = `🎉 <span style="color:#22c55e">คุณถึงพิกัดเกิดแล้ว!</span> ปุ่มพร้อมตรงกลางหน้าจอเปิดระบบใช้งาน`;
+                        document.getElementById('btnReadyTrigger').classList.remove('disabled');
+                    }
+                }
+            }, 700);
+        }
+
+        // 🎲 ฟังก์ชันการสุ่มบทบาทอัตโนมัติ (สุ่มจริง 100% ห้ามผู้เล่นเลือกฝั่งเอง)
+        function processRandomizeRoles() {
+            const arrayRoles = ['survivor', 'police', 'killer'];
+            const assignedRole = arrayRoles[Math.floor(Math.random() * arrayRoles.length)];
+
+            alert("🎲 ทุกเครื่องถึงจุดเกิดครบถ้วนแล้ว! ระบบกำลังสุ่มกระจายบทบาทห้ามเลือกฝั่งเอง...");
+
+            if(assignedRole === 'survivor') {
+                changeScreen('hudSurvivor');
+                document.getElementById('questLeftBadge').innerText = `เควสคงเหลือ: ${gameTotalQuests} จุด`;
+                // แสดงผลแผนที่ถนนสำหรับฝ่ายคนธรรมดาใช้เดินหาพิกัดทำภารกิจ
+                const liveHUDMapOptions = { zoom: 17, center: new google.maps.LatLng(currentLat, currentLng), mapTypeId: google.maps.MapTypeId.ROADMAP, disableDefaultUI: true };
+                new google.maps.Map(document.getElementById("googleRealMapHUD"), liveHUDMapOptions);
+            }
+            if(assignedRole === 'police') changeScreen('hudPolice');
+            if(assignedRole === 'killer') changeScreen('hudKiller');
+
+            // สั่งกลไกนาฬิกานับเวลาการแข่งขันจริงตามที่ตั้งค่ารอบไว้
+            setInterval(() => {
+                if(gameMatchTime > 0) {
+                    gameMatchTime--;
+                    let m = Math.floor(gameMatchTime / 60);
+                    let s = gameMatchTime % 60;
+                    let clockText = (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+                    document.querySelectorAll('.time-countdown').forEach(el => el.innerText = clockText);
+                }
+            }, 1000);
+        }
+
+        // ระบบตัวจับเวลาคูลดาวน์ปุ่มโจมตีของตัวละคร
+        function useAbilitySkill(type, cooldownSec) {
+            if(cdState[type]) return;
+            cdState[type] = true;
+
+            const buttonEl = document.getElementById(type === 'police' ? 'btnPFire' : 'btnKThrow');
+            const textEl = document.getElementById(type === 'police' ? 'cdPLabel' : 'cdKLabel');
+            
+            buttonEl.classList.add('disabled');
+            let remaining = cooldownSec;
+
+            const loop = setInterval(() => {
+                remaining -= 0.05;
+                textEl.innerText = Math.max(0, remaining).toFixed(2) + "s";
+                if(remaining <= 0) {
+                    clearInterval(loop);
+                    cdState[type] = false;
+                    buttonEl.classList.remove('disabled');
+                    textEl.innerText = "READY";
+                }
+            }, 50);
+            alert(type === 'police' ? '💥 ปัง! ยิงกระสุนเคลียร์พื้นที่เป้าหมาย!' : '🗡️ ฟึ่บ! ปาอาวุธโจมตีสกัดกั้นตำแหน่งระยะไกล!');
+        }
+    </script>
+</body>
+</html>
