@@ -88,4 +88,200 @@
         </div>
 
         <div class="view" id="viewRadarMap" style="padding:0;">
-            <div style="width:100%; height:100%; background:#020205; position:relative; padding:24px; display:flex; flex-direction:column; justify-content:space-between
+            <div style="width:100%; height:100%; background:#020205; position:relative; padding:24px; display:flex; flex-direction:column; justify-content:space-between;">
+                <div style="font-size:16px; font-weight:bold;">📍 ตรวจพบพื้นที่พิกัดใช้งาน</div>
+                <div class="radar-screen">
+                    <div class="radar-sweep"></div>
+                    <div class="radar-node" style="top:50%; left:50%; background:#fff; box-shadow: 0 0 10px #fff;"></div>
+                    <div class="radar-node" style="top:30%; left:40%; background:#eab308;" id="spawnQuestNode"></div>
+                </div>
+                <button class="menu-box" style="background:#22c55e; border:none;" onclick="engageLiveGameplay()">เข้าสู่พื้นที่ปฏิบัติการ</button>
+            </div>
+        </div>
+
+        <div class="view" id="hudSurvivor" style="padding:0;">
+            <div class="status-badge-rect">ชีวิต 🟩</div>
+            <div class="timer-display game-timer">08:00</div>
+            <div class="map-icon-circle" onclick="toggleRadarScreen(true)">🗺️</div>
+            
+            <div class="center-circle-btn" style="border-color:#eab308; color:#eab308;" id="btnQuest" onclick="processQuestAction()">ทำเควส</div>
+            <div style="position:absolute; bottom:35px; left:24px; font-size:12px; z-index:20; background:rgba(0,0,0,0.6); padding:4px 8px;" id="distanceTrack">ระยะห่างเควส: คำนวณพิกัด...</div>
+        </div>
+
+        <div class="view" id="hudPolice" style="padding:0;">
+            <div class="status-badge-rect">ชีวิต 🟩</div>
+            <div class="timer-display game-timer">08:00</div>
+            <div class="map-icon-circle" onclick="toggleRadarScreen(true)">🗺️</div>
+            
+            <div class="center-circle-btn" style="border-color:#3b82f6; color:#3b82f6;" id="btnPoliceShoot" onclick="activateSkill('policeShoot', 5)">ยิง</div>
+            <div class="sub-circle-btn" style="bottom:120px; right:24px; border-color:#eab308; color:#eab308;" onclick="alert('สแกนเควสในพื้นที่!')">เควส</div>
+            <div class="cooldown-indicator" id="cdPoliceShoot" style="color:#3b82f6;">READY</div>
+        </div>
+
+        <div class="view" id="hudKiller" style="padding:0;">
+            <div class="status-badge-rect">ชีวิต 🟩</div>
+            <div class="timer-display game-timer">08:00</div>
+            <div class="map-icon-circle" onclick="toggleRadarScreen(false)">❌</div>
+            
+            <div class="center-circle-btn" style="border-color:#ef4444; color:#ef4444;" onclick="alert('โจมตีระยะประชิดสำเร็จ!')">แทง</div>
+            <div class="sub-circle-btn" style="top:52%; right:24px; border-color:#ef4444;" id="btnKillerThrow" onclick="activateSkill('killerThrow', 8)">ปา</div>
+            <div class="sub-circle-btn" style="bottom:120px; right:24px; font-size:12px;" onclick="alert('พรางตัวหลุดจากพิกัดเรดาร์ 15 วินาที')">ซ่อน</div>
+            <div class="sub-circle-btn" style="bottom:120px; left:24px; font-size:12px;" onclick="alert('ส่องเรดาร์หาตำแหน่งเหยื่อระยะ 20 เมตร')">ส่อง</div>
+            
+            <div class="cooldown-indicator" id="cdKillerThrow" style="color:#ef4444;">READY</div>
+        </div>
+
+        <div class="digital-map-overlay" id="radarOverlay">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <div style="font-size:18px; font-weight:900;">DIGITAL LIVE RADAR</div>
+                <div class="map-icon-circle" style="position:static; background:#ef4444; border:none;" onclick="toggleRadarScreen(false)">❌</div>
+            </div>
+            <div class="radar-screen">
+                <div class="radar-sweep"></div>
+                <div class="radar-node" style="top:50%; left:50%; background:#fff; box-shadow: 0 0 10px #fff;">YOU</div>
+                <div class="radar-node" style="top:35%; left:65%; background:#eab308;" id="mapQuestNode">Q</div>
+            </div>
+            <div style="font-size:12px; color:#71717a; text-align:center; margin-top:15px;">เรดาร์จะกวาดข้อมูลอัปเดตตำแหน่งตาม GPS ทุก 3 วินาทีอัตโนมัติ</div>
+        </div>
+
+    </div>
+
+    <script>
+        let myRole = 'survivor';
+        let userLat = 0, userLng = 0;
+        let targetLat = 0, targetLng = 0;
+        let gameTime = 480; 
+        let activeCooldowns = {};
+
+        function goToScreen(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+
+        function confirmRole(role) {
+            myRole = role;
+            goToScreen('viewLobby');
+            initHardwareGPS();
+            initHardwareCamera();
+        }
+
+        // ระบบจับสัญญาณกล้องหลังของมือถือจริง
+        function initHardwareCamera() {
+            document.getElementById('cameraContainer').style.display = 'block';
+            const video = document.getElementById('webcam');
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
+                .then(function(stream) { video.srcObject = stream; })
+                .catch(function(error) { console.log("Camera blocked or not found."); });
+            }
+        }
+
+        // ระบบระบุพิกัดดาวเทียมจากตัวเครื่องจริงๆ
+        function initHardwareGPS() {
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition((position) => {
+                    userLat = position.coords.latitude;
+                    userLng = position.coords.longitude;
+                    document.getElementById('gpsStatus').innerText = "📡 สัญญาณ GPS เชื่อมต่อสำเร็จความแม่นยำสูง";
+                    document.getElementById('latlongText').innerText = userLat.toFixed(4) + ", " + userLng.toFixed(4);
+                    
+                    // สุ่มพิกัดจุดทำเควสให้อยู่ใกล้ตัวคนเล่นจริงในระยะ 30 เมตรเพื่อความสมจริง
+                    if(targetLat === 0) {
+                        targetLat = userLat + 0.0002;
+                        targetLng = userLng + 0.0002;
+                    }
+                    updateDistanceCalculation();
+                }, (err) => {
+                    document.getElementById('gpsStatus').innerText = "❌ กรุณาเปิดการอนุญาตเข้าถึง GPS บนมือถือ";
+                }, { enableHighAccuracy: true });
+            }
+        }
+
+        function updateDistanceCalculation() {
+            if(targetLat === 0) return;
+            // คำนวณระยะห่างทางดาราศาสตร์ (Haversine Formula) แปลงพิกัดเป็นเมตรจริง
+            const R = 6371e3;
+            const phi1 = userLat * Math.PI/180;
+            const phi2 = targetLat * Math.PI/180;
+            const deltaPhi = (targetLat-userLat) * Math.PI/180;
+            const deltaLambda = (targetLng-userLng) * Math.PI/180;
+            const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) + Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c; 
+
+            const distLabel = document.getElementById('distanceTrack');
+            if(distLabel) distLabel.innerText = "ระยะห่างเป้าหมายเควส: " + distance.toFixed(1) + " เมตร";
+            
+            // กฎระบบ: หากอยู่ห่างเกิน 15 เมตร ปุ่มทำเควสจะถูกบล็อก ล็อกไม่ให้กดส่งเดช
+            const btnQ = document.getElementById('btnQuest');
+            if(btnQ) {
+                if(distance > 15) {
+                    btnQ.classList.add('disabled');
+                    btnQ.innerText = "ไกลเกินไป";
+                } else {
+                    btnQ.classList.remove('disabled');
+                    btnQ.innerText = "กู้ข้อมูลเควส";
+                }
+            }
+        }
+
+        function startMatchEngine() {
+            goToScreen('viewRadarMap');
+        }
+
+        function engageLiveGameplay() {
+            if(myRole === 'survivor') goToScreen('hudSurvivor');
+            if(myRole === 'police') goToScreen('hudPolice');
+            if(myRole === 'killer') goToScreen('hudKiller');
+            
+            // เริ่มนับเวลาถอยหลังจริงวินาทีต่อวินาที
+            setInterval(() => {
+                if(gameTime > 0) {
+                    gameTime--;
+                    let mins = Math.floor(gameTime / 60);
+                    let secs = gameTime % 60;
+                    const displayString = (mins < 10 ? "0" : "") + mins + ":" + (secs < 10 ? "0" : "") + secs;
+                    document.querySelectorAll('.game-timer').forEach(el => el.innerText = displayString);
+                }
+            }, 1000);
+        }
+
+        function toggleRadarScreen(showQuests) {
+            const radar = document.getElementById('radarOverlay');
+            if(radar.style.display === 'flex') {
+                radar.style.display = 'none';
+            } else {
+                radar.style.display = 'flex';
+                document.getElementById('mapQuestNode').style.display = showQuests ? 'block' : 'none';
+            }
+        }
+
+        function processQuestAction() {
+            alert("🎯 ภารกิจสำเร็จ! คุณกู้พิกัดข้อมูลในพื้นที่สำเร็จ ได้รับแต้มคะแนนสะสม");
+        }
+
+        // ระบบคำนวณคูลดาวน์ความเร็วสูงแบบวินาทีจริง (0.00s) ล็อกการกดปุ่มแบบแอปจริง
+        function activateSkill(skillName, cooldownTime) {
+            if(activeCooldowns[skillName]) return;
+            activeCooldowns[skillName] = true;
+            
+            const btn = document.getElementById(skillName === 'policeShoot' ? 'btnPoliceShoot' : 'btnKillerThrow');
+            const cdDisplay = document.getElementById(skillName === 'policeShoot' ? 'cdPoliceShoot' : 'cdKillerThrow');
+            
+            btn.classList.add('disabled');
+            let remaining = cooldownTime;
+            
+            const timer = setInterval(() => {
+                remaining -= 0.05;
+                cdDisplay.innerText = Math.max(0, remaining).toFixed(2) + "s";
+                if(remaining <= 0) {
+                    clearInterval(timer);
+                    activeCooldowns[skillName] = false;
+                    btn.classList.remove('disabled');
+                    cdDisplay.innerText = "READY";
+                }
+            }, 50);
+        }
+    </script>
+</body>
+</html>
