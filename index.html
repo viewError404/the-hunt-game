@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>THE HUNT - Perfect Strict Boundary Engine</title>
+    <title>THE HUNT - Elite Radar & Elimination Engine</title>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=geometry"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', -apple-system, sans-serif; }
@@ -14,15 +14,12 @@
         .view { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; flex-direction: column; padding: 24px; justify-content: space-between; z-index: 10; background: #000; }
         .view.active { display: flex; }
         
-        /* กล้อง AR */
         .camera-bg { position: absolute; width: 100%; height: 100%; object-fit: cover; top: 0; left: 0; z-index: 1; pointer-events: none; display: none; }
         .camera-overlay { position: absolute; width: 100%; height: 100%; background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.85) 100%); z-index: 2; pointer-events: none; display: none; }
         
-        /* หน้าต่างแผนที่ซ้อนทับ */
         .map-overlay-screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #09090b; z-index: 40; padding: 20px; flex-direction: column; }
         .map-canvas-zone { width: 100%; height: 75%; border: 2px solid #3f3f46; border-radius: 8px; overflow: hidden; position: relative; background: #27272a; }
         
-        /* ปุ่มวงกลมตรงกลาง */
         .center-circle-btn { width: 180px; height: 180px; border-radius: 50%; border: 4px solid #ffffff; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.9) 100%); color: #ffffff; font-size: 32px; font-weight: 900; display: flex; justify-content: center; align-items: center; cursor: pointer; position: absolute; top: 40%; left: calc(50% - 90px); z-index: 20; backdrop-filter: blur(4px); }
         .center-circle-btn.disabled { opacity: 0.15; pointer-events: none; filter: grayscale(100%); border-color: #71717a; color: #71717a; }
         
@@ -36,16 +33,25 @@
         .menu-box:active { background: #ffffff; color: #000000; }
         
         .config-label { font-size: 13px; font-weight: bold; color: #fafafa; background: rgba(0,0,0,0.8); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 4px; }
-        .config-input { width: 100%; background: #18181b !important; border: 2px solid #3f3f46 !important; padding: 12px; color: #ffffff !important; font-weight: bold; border-radius: 6px; margin-top: 5px; margin-bottom: 8px; font-size: 16px; -webkit-user-select: text !important; user-select: text !important; }
+        .config-input { width: 100%; background: #18181b !important; border: 2px solid #3f3f46 !important; padding: 12px; color: #ffffff !important; font-weight: bold; border-radius: 6px; margin-top: 5px; margin-bottom: 8px; font-size: 16px; }
         
         .member-row { display: flex; align-items: center; padding: 11px; border: 1px solid #27272a; border-radius: 6px; margin-bottom: 8px; background: rgba(0,0,0,0.85); font-size: 14px; }
         .room-code-banner { font-size: 24px; font-weight: 900; text-align: center; background: #27272a; padding: 10px; border-radius: 6px; border: 1px dashed #fff; margin-bottom: 10px; color: #22c55e; letter-spacing: 4px; }
         .nav-alert-banner { position: absolute; top: 25px; left: 20px; right: 20px; background: rgba(0,0,0,0.9); border: 2px solid #3f3f46; padding: 12px; font-size: 13px; font-weight: bold; text-align: center; border-radius: 6px; z-index: 30; }
+        
+        /* หน้าจอตายเดดล็อก */
+        .death-screen { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background:#000000; color:#ef4444; z-index:100; justify-content:center; align-items:center; flex-direction:column; font-size:28px; font-weight:900; letter-spacing:2px; text-shadow: 0 0 10px rgba(239,68,68,0.7); }
     </style>
 </head>
 <body>
 
     <div class="phone-frame">
+        <div class="death-screen" id="viewDeathOverlay">
+            <span style="font-size: 70px; margin-bottom: 10px;">💀</span>
+            <div>คุณถูกกำจัดแล้ว</div>
+            <div style="font-size:12px; color:#71717a; margin-top:15px; letter-spacing:0;">สัญญาณชีพจรขาดการติดต่อในกรอบพื้นที่</div>
+        </div>
+
         <video id="webcamStream" class="camera-bg" autoplay playsinline muted></video>
         <div id="webcamOverlay" class="camera-overlay"></div>
 
@@ -55,13 +61,13 @@
                 <div class="menu-box" onclick="generateHostRoom()">สร้างห้องห้อง</div>
                 <div class="menu-box" onclick="showJoinInputScreen()">เข้าร่วมห้อง</div>
             </div>
-            <div style="text-align: center; font-size: 11px; color: #a1a1aa;">STRICT BOUNDARY VERIFIED</div>
+            <div style="text-align: center; font-size: 11px; color: #a1a1aa;">RADAR ROLE SEPARATION ENGINE</div>
         </div>
 
         <div class="view" id="viewJoinInput" style="justify-content: center; gap: 20px;">
             <div style="font-size: 22px; font-weight: 900; text-align: center;">🔗 กรอกรหัสเข้าร่วมห้อง</div>
             <div>
-                <label class="config-label">⌨️ รหัสผ่านห้อง 6 หลัก</label>
+                <label class="config-label">⌨ shrink รหัสผ่านห้อง 6 หลัก</label>
                 <input type="text" id="inpRoomCodeField" class="config-input" placeholder="กรอกรหัสที่นี่" style="text-align: center; font-size: 22px; letter-spacing: 2px;" oninput="this.value = this.value.toUpperCase()">
                 <button class="menu-box" style="background: #ffffff; color: #000; margin-top: 15px;" onclick="submitRoomCode()">เชื่อมต่อห้อง</button>
             </div>
@@ -72,7 +78,7 @@
             <div style="font-size:18px; font-weight:900; text-align:center; margin-top:5px;">📐 กำหนดกรอบแนวกำแพงจริง</div>
             <div class="room-code-banner" id="displayRoomCode">CODE: ------</div>
 
-            <label class="config-label">🗺️ ปรับแต่งตีกรอบพื้นที่เล่น (จุดเกิดและเควสจะถูกบังคับให้อยู่ข้างในนี้เท่านั้น)</label>
+            <label class="config-label">🗺️ ปรับแต่งตีกรอบพื้นที่เล่น (จุดเกิดและเควสจะอยู่ด้านในนี้)</label>
             <div class="map-canvas-zone" style="height: 240px; margin-top:5px;">
                 <div id="googleMapSetup" style="width:100%; height:100%;"></div>
             </div>
@@ -90,9 +96,7 @@
             <div>
                 <div style="font-size:18px; font-weight:900; text-align:center; margin-bottom:10px;">ROOM LOBBY</div>
                 <div id="lobbyCodeLabel" style="text-align:center; font-weight:bold; color:#eab308; margin-bottom:15px; font-size: 22px;">รหัสห้อง: ------</div>
-                
-                <div id="lobbyAlert" style="font-size:13px; color:#ef4444; text-align:center; font-weight:bold; margin-bottom:20px;">❌ สมาชิกไม่ครบ 4 คน เริ่มเกมไม่ได้</div>
-                
+                <div id="lobbyAlert" style="font-size:13px; color:#ef4444; text-align:center; font-weight:bold; margin-bottom:20px;">❌ สมาชิกไม่ครบ 4 คน เริ่มไม่ได้</div>
                 <div class="member-row">👥 คุณ (เจ้าของห้อง) <span style="margin-left:auto; color:#22c55e;">📍 ออนไลน์</span></div>
                 <div id="lobbyPlayersList"></div>
             </div>
@@ -101,11 +105,9 @@
 
         <div class="view" id="viewSpawnNav" style="padding:0;">
             <div id="googleMapSpawn" style="width:100%; height:100%; position:absolute; top:0; left:0; z-index:1;"></div>
-            
             <div class="nav-alert-banner" id="spawnBannerText" style="z-index:30;">
-                🚶‍♂️ โปรดเดินไปยังหมุดจุดเกิดสีแดงที่สุ่มอยู่ภายในกรอบกำแพงเท่านั้น...
+                🚶‍♂️ โปรดเดินไปยังหมุดวงกลมสีแดงที่สุ่มอยู่ภายในกรอบกำแพง...
             </div>
-
             <div class="center-circle-btn disabled" id="btnReadyActive" style="border-color:#22c55e; color:#22c55e; font-size:24px;" onclick="randomizeRolesAndTasks()">พร้อม</div>
         </div>
 
@@ -120,14 +122,14 @@
 
         <div class="map-overlay-screen" id="mapOverlayContainer">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <div style="font-size:14px; font-weight:900;">📌 เรดาร์จริง (เควสทั้งหมดถูกจำกัดในกรอบ)</div>
+                <div style="font-size:13px; font-weight:900;" id="radarTitleText">📌 กำลังประมวลสัญญาณเรดาร์...</div>
                 <div class="map-icon-btn" style="position:static; background:#ef4444; border:none;" onclick="toggleMapOverlay(false)">❌</div>
             </div>
             <div class="map-canvas-zone">
                 <div id="googleMapGameplay" style="width:100%; height:100%;"></div>
             </div>
             <div style="font-size:12px; color:#a1a1aa; text-align:center; margin-top:10px;" id="taskStatusText">
-                เดินในพื้นที่จริงเพื่อนำตำแหน่งของคุณไปทำเควสในกรอบสนาม
+                ระบบจัดการขอบเขตพื้นที่เล่นเสถียร
             </div>
         </div>
 
@@ -135,16 +137,18 @@
 
     <script>
         let generatedRoomCode = "";
-        let currentLat = 13.7563, currentLng = 100.5018; // พิกัดสำรอง
-        let countPlayers = 1;
+        let currentLat = 13.7563, currentLng = 100.5018; 
+        let countPlayers = 4;
         let distanceToSpawn = 20; 
         let totalQuestsConfig = 4;
         let matchDuration = 480;
         let finalAssignedRole = "survivor";
+        let isPlayerDead = false;
         
-        let playablePolygonElement = null; // ออบเจ็กต์โครงสร้างกรอบพื้นที่กูเกิลแมป
-        let spawnedTargetLat = 0, spawnedTargetLng = 0; // พิกัดเกิดในกรอบ
-        let questLocationsArray = []; // พิกัดเควสในกรอบ
+        let playablePolygonElement = null; 
+        let spawnedTargetLat = 0, spawnedTargetLng = 0; 
+        let questLocationsArray = []; 
+        let otherPlayersSimulatedArray = []; // พิกัดจำลองของคนอื่นสำหรับให้ฆาตกรดูไล่ล่า
         let killerMapCooldownActive = false;
 
         function changeView(id) {
@@ -154,7 +158,6 @@
 
         function showJoinInputScreen() { 
             changeView('viewJoinInput'); 
-            setTimeout(() => { document.getElementById('inpRoomCodeField').focus(); }, 150);
         }
 
         function submitRoomCode() {
@@ -162,10 +165,7 @@
             if(code.length >= 4) {
                 generatedRoomCode = code;
                 alert(`🔗 เข้าร่วมห้องรหัส ${generatedRoomCode} สำเร็จแล้ว!`);
-                countPlayers = 4; 
                 goToLobbyRoom(true);
-            } else {
-                alert("❌ กรุณากรอกรหัสห้องให้ถูกต้องครับ");
             }
         }
 
@@ -173,15 +173,11 @@
             const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
             generatedRoomCode = "";
             for(let i=0; i<6; i++) { generatedRoomCode += chars.charAt(Math.floor(Math.random() * chars.length)); }
-            
             changeView('viewConfig');
             document.getElementById('displayRoomCode').innerText = `CODE: ${generatedRoomCode}`;
-            
-            // เรียกพิกัดจริงเพื่อปักหน้าตั้งค่าขอบเขตสนามทันที
             startTrackingRealLocation(() => { initSetupBoundaryMap(); });
         }
 
-        // ระบบติดตามตำแหน่งพิกัดจริงของผู้เล่นผ่าน GPS ฮาร์ดแวร์มือถือ
         function startTrackingRealLocation(callback) {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((pos) => {
@@ -189,23 +185,19 @@
                     currentLng = pos.coords.longitude;
                     if(callback) callback();
                 }, () => { if(callback) callback(); }, { enableHighAccuracy: true });
-            } else {
-                if(callback) callback();
-            }
+            } else { if(callback) callback(); }
         }
 
         function initSetupBoundaryMap() {
             const mapOpts = { zoom: 17, center: new google.maps.LatLng(currentLat, currentLng), mapTypeId: google.maps.MapTypeId.ROADMAP, disableDefaultUI: true };
             const mapSetup = new google.maps.Map(document.getElementById("googleMapSetup"), mapOpts);
 
-            // ปักหมุดผู้สร้างห้อง ณ ตำแหน่งปัจจุบันยามตั้งค่า
-            new google.maps.Marker({
-                position: new google.maps.LatLng(currentLat, currentLng),
-                map: mapSetup,
-                title: "ตำแหน่งปัจจุบันของคุณ (ผู้สร้างห้อง)"
+            // วงกลมสีน้ำเงินแสดงตำแหน่งจริงของผู้สร้างชัดเจนบนระบบ
+            new google.maps.Circle({
+                center: new google.maps.LatLng(currentLat, currentLng),
+                radius: 6, strokeColor: "#ffffff", strokeOpacity: 1, strokeWeight: 2, fillColor: "#3b82f6", fillOpacity: 1, map: mapSetup
             });
 
-            // สร้างกรอบสี่เหลี่ยมรอบตัวผู้เล่นเริ่มต้น
             let boundaryPath = [
                 new google.maps.LatLng(currentLat + 0.0006, currentLng - 0.0006),
                 new google.maps.LatLng(currentLat + 0.0006, currentLng + 0.0006),
@@ -214,15 +206,7 @@
             ];
 
             playablePolygonElement = new google.maps.Polygon({
-                paths: boundaryPath,
-                editable: true,
-                draggable: true,
-                strokeColor: '#22c55e',
-                strokeOpacity: 0.9,
-                strokeWidth: 3,
-                fillColor: '#22c55e',
-                fillOpacity: 0.15,
-                map: mapSetup
+                paths: boundaryPath, editable: true, draggable: true, strokeColor: '#22c55e', strokeOpacity: 0.9, strokeWidth: 3, fillColor: '#22c55e', fillOpacity: 0.15, map: mapSetup
             });
         }
 
@@ -230,58 +214,34 @@
             if(!isGuest) {
                 totalQuestsConfig = parseInt(document.getElementById('inpQuests').value || 4);
                 matchDuration = parseInt(document.getElementById('inpTime').value || 8) * 60;
-                countPlayers = 4;
             }
-            
             changeView('viewLobby');
             document.getElementById('lobbyCodeLabel').innerText = `รหัสห้อง: ${generatedRoomCode}`;
             
-            const listContainer = document.getElementById('lobbyPlayersList');
-            listContainer.innerHTML = "";
-            for(let i = 1; i < countPlayers; i++) {
-                listContainer.innerHTML += `<div class="member-row">👥 ผู้เล่นร่วมห้องคนที่ ${i+1} <span style="margin-left:auto; color:#22c55e;">📍 GPS พร้อมเสถียร</span></div>`;
-            }
-
             const alertLabel = document.getElementById('lobbyAlert');
-            const btnLaunch = document.getElementById('btnStartGame');
-            
-            if(countPlayers < 4) {
-                alertLabel.innerText = `❌ สมาชิกไม่ครบ 4 คนตามกติกา เริ่มไม่ได้`;
-                btnLaunch.classList.add('disabled');
-            } else {
-                alertLabel.innerText = `✅ สมาชิกครบ 4 คนแล้ว ปลดล็อกระเบียบการสุ่มพิกัดปลอดภัย`;
-                alertLabel.style.color = "#22c55e";
-                btnLaunch.classList.remove('disabled');
-            }
+            alertLabel.innerText = `✅ สมาชิกครบกลุ่มแล้ว ปลดล็อกระบบนำทางจุดเกิด`;
+            alertLabel.style.color = "#22c55e";
+            document.getElementById('btnStartGame').classList.remove('disabled');
         }
 
-        // 🛡️ อัลกอริทึมคณิตศาสตร์ขั้นสูง: การันตีคำนวณเควสและจุดเกิดให้อยู่ภายใน Polygon กรอบขอบเขต 100% ป้องกันหลุดออกข้างนอก
         function generateStrictInsidePoints() {
             if (!playablePolygonElement) return;
-
-            // หาขอบเขตสี่เหลี่ยมครอบแผ่นกรอบไว้ก่อนเพื่อสุ่ม (Bounding Box)
             let bounds = new google.maps.LatLngBounds();
-            playablePolygonElement.getPath().forEach((element) => { bounds.extend(element); });
-            
-            let sw = bounds.getSouthWest();
-            let ne = bounds.getNorthEast();
+            playablePolygonElement.getPath().forEach((e) => bounds.extend(e));
+            let sw = bounds.getSouthWest(), ne = bounds.getNorthEast();
 
-            // 1. สุ่มหาพิกัดจุดเกิด (Spawn Point) ให้อยู่ในกรอบจริง 100%
+            // สุ่มจุดเกิดในกรอบ
             let isSpawnInside = false;
             while (!isSpawnInside) {
                 let randomLat = sw.lat() + (Math.random() * (ne.lat() - sw.lat()));
                 let randomLng = sw.lng() + (Math.random() * (ne.lng() - sw.lng()));
                 let testLatLng = new google.maps.LatLng(randomLat, randomLng);
-                
-                // ตรวจคำนวณวิเคราะห์เชิงพื้นที่ด้วย Geometry Library จริงของ Google Maps
                 if (google.maps.geometry.poly.containsLocation(testLatLng, playablePolygonElement)) {
-                    spawnedTargetLat = randomLat;
-                    spawnedTargetLng = randomLng;
-                    isSpawnInside = true;
+                    spawnedTargetLat = randomLat; spawnedTargetLng = randomLng; isSpawnInside = true;
                 }
             }
 
-            // 2. สุ่มกระจายตำแหน่งเควสตามจำนวนที่ระบุ การันตีล็อกอยู่แต่ข้างในขอบเขตกรอบ 100%
+            // สุ่มเควสในกรอบ
             questLocationsArray = [];
             for (let i = 0; i < totalQuestsConfig; i++) {
                 let isQuestInside = false;
@@ -289,58 +249,60 @@
                     let randomLat = sw.lat() + (Math.random() * (ne.lat() - sw.lat()));
                     let randomLng = sw.lng() + (Math.random() * (ne.lng() - sw.lng()));
                     let testLatLng = new google.maps.LatLng(randomLat, randomLng);
-
                     if (google.maps.geometry.poly.containsLocation(testLatLng, playablePolygonElement)) {
-                        questLocationsArray.push({ lat: randomLat, lng: randomLng });
-                        isQuestInside = true;
+                        questLocationsArray.push({ lat: randomLat, lng: randomLng }); isQuestInside = true;
+                    }
+                }
+            }
+
+            // สุ่มตำแหน่งผู้เล่นอื่นในกรอบ (สำหรับให้ฆาตกรตามล่า)
+            otherPlayersSimulatedArray = [];
+            for (let i = 0; i < 3; i++) {
+                let isPlayerInside = false;
+                while (!isPlayerInside) {
+                    let randomLat = sw.lat() + (Math.random() * (ne.lat() - sw.lat()));
+                    let randomLng = sw.lng() + (Math.random() * (ne.lng() - sw.lng()));
+                    let testLatLng = new google.maps.LatLng(randomLat, randomLng);
+                    if (google.maps.geometry.poly.containsLocation(testLatLng, playablePolygonElement)) {
+                        otherPlayersSimulatedArray.push({ lat: randomLat, lng: randomLng }); isPlayerInside = true;
                     }
                 }
             }
         }
 
-        // หน้าต่างบังคับเดินเท้าไปจุดเกิด (แสดงตำแหน่งสดๆ ของผู้เล่นปัจจุบันร่วมกับหมุดเป้าหมาย)
         function enterSpawnNavigationPhase() {
-            generateStrictInsidePoints(); // เรียกใช้คำนวณขั้นสูง ล็อกทุกอย่างในขอบเขตสำเร็จก่อนเปิดแมป
+            generateStrictInsidePoints();
             changeView('viewSpawnNav');
             
-            // อัปเดตพิกัดตำแหน่งจริงสดของผู้เล่นก่อนเรนเดอร์แมป
             startTrackingRealLocation(() => {
                 const mapOpts = { zoom: 17, center: new google.maps.LatLng(currentLat, currentLng), mapTypeId: google.maps.MapTypeId.HYBRID, disableDefaultUI: true };
                 const mapSpawn = new google.maps.Map(document.getElementById("googleMapSpawn"), mapOpts);
 
-                // วาดแนวเขตกรอบที่สร้างไว้ให้เห็นบนแมปจริงชัดเจน
                 if (playablePolygonElement) {
-                    new google.maps.Polygon({
-                        paths: playablePolygonElement.getPath(), strokeColor: '#22c55e', strokeOpacity: 0.8, strokeWidth: 3, fillColor: '#22c55e', fillOpacity: 0.05, map: mapSpawn
-                    });
+                    new google.maps.Polygon({ paths: playablePolygonElement.getPath(), strokeColor: '#22c55e', strokeOpacity: 0.8, strokeWidth: 3, fillColor: '#22c55e', fillOpacity: 0.05, map: mapSpawn });
                 }
 
-                // 🔴 หมุดจุดเกิดเป้าหมายสีแดง (การันตีอยู่ด้านในกรอบแน่นอนจากฟังก์ชันคณิตศาสตร์)
-                new google.maps.Marker({
-                    position: new google.maps.LatLng(spawnedTargetLat, spawnedTargetLng),
-                    map: mapSpawn,
-                    title: "จุดเกิดประจำการของคุณ (บังคับอยู่ในกรอบ)",
-                    icon: { url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png" }
+                // หมุดจุดเกิดสีแดงกลมเรนเดอร์แท้
+                new google.maps.Circle({
+                    center: new google.maps.LatLng(spawnedTargetLat, spawnedTargetLng),
+                    radius: 8, strokeColor: "#ffffff", strokeOpacity: 1, strokeWeight: 2, fillColor: "#ef4444", fillOpacity: 1, map: mapSpawn
                 });
 
-                // 🔵 หมุดแสดงตำแหน่งปัจจุบันของตัวผู้เล่นเองสดๆ จริงบนหน้าจอ!
-                let playerMarker = new google.maps.Marker({
-                    position: new google.maps.LatLng(currentLat, currentLng),
-                    map: mapSpawn,
-                    title: "ตำแหน่งปัจจุบันของคุณ (GPS จริง)",
-                    icon: { url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png" }
+                // วงกลมสีน้ำเงินบอกพิกัดสดของตัวเอง
+                let myPosCircle = new google.maps.Circle({
+                    center: new google.maps.LatLng(currentLat, currentLng),
+                    radius: 6, strokeColor: "#ffffff", strokeOpacity: 1, strokeWeight: 2, fillColor: "#3b82f6", fillOpacity: 1, map: mapSpawn
                 });
 
-                // จำลองกระบวนการก้าวเท้าเดินเข้าหาหมุดจุดเกิดจริง
                 const trackingWalk = setInterval(() => {
                     if(distanceToSpawn > 0) {
                         distanceToSpawn -= 5;
                         if(distanceToSpawn <= 0) distanceToSpawn = 0;
-                        document.getElementById('spawnBannerText').innerHTML = `🏃‍♂️ กรุณาเดินเท้าเข้าหาหมุดแดง... <span style="color:#ef4444">เหลือระยะห่าง: ${distanceToSpawn} เมตร</span>`;
+                        document.getElementById('spawnBannerText').innerHTML = `🏃‍♂️ เดินเท้าเข้าหาพิกัดวงกลมสีแดงในกรอบ... <span style="color:#ef4444">อีก ${distanceToSpawn} ม.</span>`;
                         
                         if(distanceToSpawn === 0) {
                             clearInterval(trackingWalk);
-                            document.getElementById('spawnBannerText').innerHTML = `🎉 <span style="color:#22c55e">คุณเหยียบจุดเริ่มเกมแล้ว!</span> โปรดกดปุ่มพร้อมตรงกลางจอเพื่อสุ่มบทบาท`;
+                            document.getElementById('spawnBannerText').innerHTML = `🎉 <span style="color:#22c55e">คุณถึงจุดประจำการแล้ว!</span> โปรดกดพร้อมตรงกลางจอเพื่อสุ่มบทบาท`;
                             document.getElementById('btnReadyActive').classList.remove('disabled');
                         }
                     }
@@ -352,7 +314,6 @@
             const rolePool = ['survivor', 'police', 'killer'];
             finalAssignedRole = rolePool[Math.floor(Math.random() * rolePool.length)];
 
-            // เปิดกล้องสภาพแวดล้อมจริง AR
             document.getElementById('webcamStream').style.display = "block";
             document.getElementById('webcamOverlay').style.display = "block";
             if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -390,10 +351,10 @@
             }
         }
 
-        // เปิดแผงหน้าต่างแผนที่จริงระหว่างการเล่นเกมแมตช์จริง
+        // 🗺️ เปิดเรดาร์แผนที่จำกัดความสามารถตามกติกา
         function toggleMapOverlay(open) {
             if(open && finalAssignedRole === 'killer' && killerMapCooldownActive) {
-                alert("❌ แผนที่เรดาร์ฆาตกรติดคูลดาวน์ 1 นาที! ยังเปิดไม่ได้ครับ");
+                alert("❌ แผนที่เรดาร์ฆาตกรติดคูลดาวน์ระบบ 1 นาที!");
                 return;
             }
 
@@ -401,42 +362,46 @@
             container.style.display = open ? 'flex' : 'none';
 
             if(open) {
-                // ติดตามพิกัดปัจจุบันสดๆ ของตัวผู้เล่นจริงก่อนโหลดแผนที่รอบนี้
                 startTrackingRealLocation(() => {
                     const mapOpts = { zoom: 17, center: new google.maps.LatLng(currentLat, currentLng), mapTypeId: google.maps.MapTypeId.ROADMAP, disableDefaultUI: true };
                     const mapGameplay = new google.maps.Map(document.getElementById("googleMapGameplay"), mapOpts);
 
-                    // วาดขอบเขตรอยต่อกำแพงควบคุมปลอดภัยลงบนแผนที่
                     if (playablePolygonElement) {
-                        new google.maps.Polygon({
-                            paths: playablePolygonElement.getPath(), strokeColor: '#22c55e', strokeOpacity: 0.8, strokeWidth: 3, fillColor: '#22c55e', fillOpacity: 0.08, map: mapGameplay
-                        });
+                        new google.maps.Polygon({ paths: playablePolygonElement.getPath(), strokeColor: '#22c55e', strokeOpacity: 0.8, strokeWidth: 3, fillColor: '#22c55e', fillOpacity: 0.08, map: mapGameplay });
                     }
 
-                    // 🔵 แสดงหมุดพิกัดตำแหน่งจริงสดของผู้เล่น ณ วินาทีนี้จริง ๆ บนหน้าจอเกม
-                    new google.maps.Marker({
-                        position: new google.maps.LatLng(currentLat, currentLng),
-                        map: mapGameplay,
-                        title: "ตำแหน่งปัจจุบันของคุณ (GPS เรียลไทม์)",
-                        icon: { url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png" }
+                    // 🔵 แสดงพิกัดตำแหน่งจริงสดของผู้เล่นปัจจุบัน (มีแสดงทุกฝั่ง)
+                    new google.maps.Circle({
+                        center: new google.maps.LatLng(currentLat, currentLng), radius: 6, strokeColor: "#ffffff", strokeOpacity: 1, strokeWeight: 2, fillColor: "#3b82f6", fillOpacity: 1, map: mapGameplay
                     });
 
-                    // 📦 แสดงหมุดจุดทำภารกิจเควส (ซึ่งถูกฟังก์ชัน generateStrictInsidePoints ล็อกให้อยู่ในกรอบ 100% ตั้งแต่แรก)
-                    document.getElementById('taskStatusText').innerText = `ดาวเทียมแมปจริง: โหลดพิกัดเควส ${totalQuestsConfig} จุด และตำแหน่งผู้เล่นในกรอบเสร็จสิ้น`;
-                    
-                    questLocationsArray.forEach((q, idx) => {
-                        new google.maps.Marker({
-                            position: new google.maps.LatLng(q.lat, q.lng),
-                            map: mapGameplay,
-                            title: `จุดภารกิจเควสที่ ${idx + 1}`,
-                            icon: { url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png" }
+                    const titleLabel = document.getElementById('radarTitleText');
+                    const infoLabel = document.getElementById('taskStatusText');
+
+                    if(finalAssignedRole === 'killer') {
+                        // 💀 ฝ่ายฆาตกร: ไม่เห็นเควส แต่เห็นตำแหน่งผู้เล่นคนอื่นทั้งหมดในกรอบ
+                        titleLabel.innerText = "💀 เรดาร์ฆาตกร (แสดงตำแหน่งเหยื่อในกรอบ)";
+                        infoLabel.innerText = "ตำแหน่งของเหยื่ออีก 3 คนปรากฏเป็นวงกลมสีส้มไล่ล่าได้ทันที เควสทั้งหมดถูกซ่อนไว้";
+
+                        otherPlayersSimulatedArray.forEach((p) => {
+                            new google.maps.Circle({
+                                center: new google.maps.LatLng(p.lat, p.lng), radius: 6, strokeColor: "#ffffff", strokeOpacity: 1, strokeWeight: 2, fillColor: "#f97316", fillOpacity: 1, map: mapGameplay
+                            });
                         });
-                    });
+                    } else {
+                        // 👥 ฝ่ายคนธรรมดา / ตำรวจ: เห็นเควสในกรอบ แต่ไม่เห็นตำแหน่งผู้เล่นคนอื่น
+                        titleLabel.innerText = "👥 เรดาร์ผู้รอดชีวิต (แสดงจุดภารกิจกู้ภัย)";
+                        infoLabel.innerText = "เดินเท้าเข้าหาพิกัดวงกลมสีเหลืองเพื่อกู้สัญญาณภารกิจให้สำเร็จตามเป้าหมาย";
+
+                        questLocationsArray.forEach((q) => {
+                            new google.maps.Circle({
+                                center: new google.maps.LatLng(q.lat, q.lng), radius: 5, strokeColor: "#ffffff", strokeOpacity: 1, strokeWeight: 1.5, fillColor: "#eab308", fillOpacity: 1, map: mapGameplay
+                            });
+                        });
+                    }
                 });
             } else {
-                if(finalAssignedRole === 'killer') {
-                    startKillerMapCooldown();
-                }
+                if(finalAssignedRole === 'killer') { startKillerMapCooldown(); }
             }
         }
 
@@ -444,25 +409,31 @@
             killerMapCooldownActive = true;
             const mapBtn = document.getElementById('hudMapToggleBtn');
             mapBtn.classList.add('in-cooldown');
-            
-            let remains = 60;
-            mapBtn.innerText = remains + "s";
+            let remains = 60; mapBtn.innerText = remains + "s";
 
             const cdInterval = setInterval(() => {
-                remains--;
-                mapBtn.innerText = remains + "s";
-                
+                remains--; mapBtn.innerText = remains + "s";
                 if(remains <= 0) {
-                    clearInterval(cdInterval);
-                    killerMapCooldownActive = false;
-                    mapBtn.classList.remove('in-cooldown');
-                    mapBtn.innerText = "🗺️";
+                    clearInterval(cdInterval); killerMapCooldownActive = false;
+                    mapBtn.classList.remove('in-cooldown'); mapBtn.innerText = "🗺️";
                 }
             }, 1000);
         }
 
+        // ระบบจำลองแอ็กชันและการตาย
         function executeMainAction() {
-            alert(`⚡ เปิดคำสั่งระบบสกิลบทบาท [${finalAssignedRole.toUpperCase()}] ในพิกัดดาวเทียมเรียบร้อย!`);
+            if(finalAssignedRole === 'killer') {
+                alert("⚔️ ฆาตกรเปิดฉากโจมตีเหยื่อในรัศมีรอบตัว!");
+                // จำลองส่งสัญญาณเสียงหรือบล็อกผู้เล่นอื่นให้เข้าสถานะการตาย
+            } else {
+                alert(`⚡ เปิดใช้งานระบบคำสั่งฟังก์ชันของฝ่าย [${finalAssignedRole.toUpperCase()}]`);
+            }
+        }
+
+        // ฟังก์ชันสั่งฆ่า/ผู้เล่นตายเพื่อทดสอบระบบล็อกหน้าจอสีดำ
+        function triggerPlayerDeath() {
+            isPlayerDead = true;
+            document.getElementById('viewDeathOverlay').style.display = "flex";
         }
     </script>
 </body>
