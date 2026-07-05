@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>THE HUNT - Advanced Matchmaking Engine</title>
+    <title>THE HUNT - Google Maps AR Real Match Engine</title>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', -apple-system, sans-serif; user-select: none; }
         body { background-color: #09090b; color: #fafafa; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
@@ -13,26 +14,61 @@
         .view { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; flex-direction: column; padding: 24px; justify-content: space-between; z-index: 10; }
         .view.active { display: flex; }
         
-        /* HUD & UI Elements */
-        .status-badge-rect { position: absolute; top: 30px; left: 24px; border: 2px solid #ffffff; padding: 6px 18px; font-size: 14px; font-weight: 800; background: rgba(0,0,0,0.85); z-index: 20; }
+        /* Google Maps Container */
+        #googleMapAdmin, #googleMapNavigation, #googleMapHUD { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        
+        /* HUD UI Overlay บนแผนที่จริง */
+        .status-badge-rect { position: absolute; top: 30px; left: 24px; border: 2px solid #ffffff; padding: 6px 18px; font-size: 14px; font-weight: 800; background: rgba(0,0,0,0.85); z-index: 20; border-radius: 4px; }
         .map-icon-circle { position: absolute; top: 30px; right: 24px; width: 42px; height: 42px; border-radius: 50%; border: 2px solid #ffffff; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; background: rgba(0,0,0,0.85); z-index: 20; }
         .timer-display { position: absolute; top: 35px; left: 50%; transform: translateX(-50%); font-size: 20px; font-weight: 900; background: rgba(0,0,0,0.85); padding: 4px 14px; border-radius: 6px; border: 1px solid #3f3f46; z-index: 20; font-family: monospace; }
 
-        /* Big Action Buttons */
-        .center-circle-btn { width: 180px; height: 180px; border-radius: 50%; border: 4px solid #ffffff; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.6) 100%); color: #ffffff; font-size: 32px; font-weight: 900; display: flex; justify-content: center; align-items: center; cursor: pointer; position: absolute; top: 40%; left: calc(50% - 90px); z-index: 20; transition: transform 0.1s; }
+        /* ปุ่มหลักวงกลมกลางจอควบคุมระบบเงื่อนไขกติกา */
+        .center-circle-btn { width: 180px; height: 180px; border-radius: 50%; border: 4px solid #ffffff; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.8) 100%); color: #ffffff; font-size: 32px; font-weight: 900; display: flex; justify-content: center; align-items: center; cursor: pointer; position: absolute; top: 40%; left: calc(50% - 90px); z-index: 20; transition: transform 0.1s; backdrop-filter: blur(4px); }
         .center-circle-btn:active { transform: scale(0.95); }
-        .center-circle-btn.disabled { opacity: 0.15; pointer-events: none; filter: grayscale(100%); }
+        .center-circle-btn.disabled { opacity: 0.2; pointer-events: none; filter: grayscale(100%); border-color: #71717a; color: #71717a; }
         
         .sub-circle-btn { width: 62px; height: 62px; border-radius: 50%; border: 2px solid #ffffff; background: rgba(9, 9, 11, 0.9); color: #ffffff; font-size: 14px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; position: absolute; z-index: 20; }
         
-        /* Setup Map Canvas Zone */
-        .map-canvas-container { width: 100%; height: 260px; border: 2px dashed #3f3f46; background: #111113; position: relative; border-radius: 8px; margin: 12px 0; overflow: hidden; }
-        .canvas-hint { position: absolute; top: 8px; left: 10px; font-size: 11px; color: #a1a1aa; pointer-events: none; }
-        .radar-screen { width: 100%; height: 100%; background: #020205; position: relative; }
-        .radar-sweep { position: absolute; width: 100%; height: 100%; background: conic-gradient(from 0deg, rgba(34,197,94,0.1) 0deg, transparent 90deg); animation: sweep 4s linear infinite; pointer-events: none; }
-        @keyframes sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .radar-node { position: absolute; width: 12px; height: 12px; border-radius: 50%; transform: translate(-50%, -50%); }
+        .menu-box { width: 100%; border: 2px solid #ffffff; padding: 18px; margin-bottom: 14px; text-align: center; font-size: 16px; font-weight: 800; background: rgba(0, 0, 0, 0.85); cursor: pointer; border-radius: 6px; z-index: 20; }
+        .menu-box:active { background: #ffffff; color: #000000; }
+        
+        .config-label { font-size: 13px; font-weight: bold; color: #fafafa; background: rgba(0,0,0,0.8); padding: 4px 8px; border-radius: 4px; display: inline-block; z-index: 20; }
+        .member-row { display: flex; align-items: center; padding: 10px; border: 1px solid #27272a; border-radius: 6px; margin-bottom: 8px; background: rgba(0,0,0,0.85); font-size: 14px; z-index: 20; }
+        .cooldown-box { border: 1px solid #ffffff; padding: 4px 10px; font-size: 12px; font-weight: bold; font-family: monospace; background: #000; position: absolute; bottom: 40px; left: 24px; z-index: 25; }
+        
+        .map-wrapper { width: 100%; height: 300px; position: relative; border: 2px solid #3f3f46; border-radius: 8px; overflow: hidden; margin: 10px 0; }
+        .nav-alert-banner { position: absolute; top: 20px; left: 20px; right: 20px; background: rgba(0,0,0,0.9); border: 2px solid #3f3f46; padding: 10px; font-size: 13px; font-weight: bold; text-align: center; border-radius: 6px; z-index: 30; }
+    </style>
+</head>
+<body>
 
-        /* Menu & Inputs */
-        .app-title { font-size: 36px; font-weight: 900; text-align: center; margin-top: 30px; letter-spacing: 2px; }
-        .menu-box { width: 100%; border: 2px solid #ffffff; padding: 18px; margin-bottom: 14
+    <div class="phone-frame">
+
+        <div class="view active" id="viewMain">
+            <div style="font-size: 36px; font-weight: 900; text-align: center; margin-top: 40px; letter-spacing: 2px; z-index:20;">THE HUNT</div>
+            <div>
+                <div class="menu-box" onclick="initAdminSetup()">สร้างห้องเกม (หัวหน้า)</div>
+                <div class="menu-box" onclick="joinMatchmaking()">เข้าร่วมห้องเกม (ผู้เล่น)</div>
+            </div>
+            <div style="text-align: center; font-size: 11px; color: #a1a1aa; z-index:20;">GOOGLE MAPS REALTIME API CORE</div>
+        </div>
+
+        <div class="view" id="viewConfig" style="justify-content: space-between; padding: 20px;">
+            <div class="config-label">📍 ขั้นตอนที่ 1: ลากขอบเขตสนามแข่งบนแผนที่ Google Maps จริง</div>
+            <div class="map-wrapper">
+                <div id="googleMapAdmin"></div>
+            </div>
+            <div>
+                <span class="config-label" style="margin-bottom: 6px;">⏱️ เวลาเล่น (นาที)</span>
+                <input type="number" id="inpTime" value="8" style="width:100%; background:#18181b; border:1px solid #3f3f46; padding:10px; color:#fff; font-weight:bold; border-radius:6px; margin-bottom:15px;">
+                <span class="config-label" style="margin-bottom: 6px;">👥 จำนวนผู้เล่นขั้นต่ำ</span>
+                <input type="number" id="inpMinUsers" value="3" style="width:100%; background:#18181b; border:1px solid #3f3f46; padding:10px; color:#fff; font-weight:bold; border-radius:6px;">
+            </div>
+            <button class="menu-box" style="background:#ffffff; color:#000000; margin: 0;" onclick="openLobbyRoom()">สร้างห้องพักคอย</button>
+        </div>
+
+        <div class="view" id="viewLobby">
+            <div style="z-index:20;">
+                <div style="font-size:18px; font-weight:900; text-align:center; margin-bottom:15px;">ROOM LOBBY (รอยืนยันสิทธิ์)</div>
+                <div id="lobbyNotice" style="font-size:13px; color:#ef4444; text-align:center; font-weight:bold; margin-bottom:20px;">❌ สมาชิกไม่ครบเงื่อนไขที่กำหนดไว้ เริ่มเกมไม่ได้</div>
+                <div class="member-row">👥 เครื่องของคุณ (โฮสต์) <span style="margin-left:auto; color:#22c
