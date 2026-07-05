@@ -3,43 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>THE HUNT - Real Life Survival Game</title>
+    <title>THE HUNT - Live AR Real-Time Game</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', -apple-system, sans-serif; user-select: none; -webkit-user-select: none; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', -apple-system, sans-serif; user-select: none; }
         body { background-color: #09090b; color: #fafafa; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
         
-        /* จำลองกรอบมือถือให้ดูพรีเมียม */
-        .phone-frame { width: 100vw; height: 100vh; max-width: 430px; max-height: 932px; background-color: #000000; position: relative; overflow: hidden; border: 2px solid #27272a; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); display: flex; flex-direction: column; }
+        .phone-frame { width: 100vw; height: 100vh; max-width: 430px; max-height: 932px; background-color: #000000; position: relative; overflow: hidden; border: 2px solid #27272a; display: flex; flex-direction: column; }
         
         .view { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; flex-direction: column; padding: 24px; justify-content: space-between; z-index: 10; }
         .view.active { display: flex; }
         
-        /* สไตล์กรอบและไอคอนตามภาพสเก็ตช์ */
-        .status-badge-rect { position: absolute; top: 30px; left: 24px; border: 2px solid #ffffff; padding: 6px 18px; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; background: rgba(0,0,0,0.7); border-radius: 4px; backdrop-filter: blur(4px); z-index: 20; }
-        .map-icon-circle { position: absolute; top: 30px; right: 24px; width: 42px; height: 42px; border-radius: 50%; border: 2px solid #ffffff; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 20; transition: transform 0.1s; }
-        .map-icon-circle:active { transform: scale(0.9); }
+        /* HUD UI Elements */
+        .status-badge-rect { position: absolute; top: 30px; left: 24px; border: 2px solid #ffffff; padding: 6px 18px; font-size: 14px; font-weight: 800; background: rgba(0,0,0,0.75); border-radius: 4px; backdrop-filter: blur(4px); z-index: 20; }
+        .map-icon-circle { position: absolute; top: 30px; right: 24px; width: 42px; height: 42px; border-radius: 50%; border: 2px solid #ffffff; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; background: rgba(0,0,0,0.75); z-index: 20; }
+        .timer-display { position: absolute; top: 35px; left: 50%; transform: translateX(-50%); font-size: 20px; font-weight: 900; background: rgba(0,0,0,0.8); padding: 4px 14px; border-radius: 6px; border: 1px solid #3f3f46; z-index: 20; font-family: monospace; }
+
+        /* Core Action Buttons */
+        .center-circle-btn { width: 180px; height: 180px; border-radius: 50%; border: 4px solid #ffffff; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.5) 100%); color: #ffffff; font-size: 32px; font-weight: 900; display: flex; justify-content: center; align-items: center; cursor: pointer; position: absolute; top: 40%; left: calc(50% - 90px); z-index: 20; transition: transform 0.1s; }
+        .center-circle-btn:active { transform: scale(0.95); }
+        .center-circle-btn.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
         
-        /* ปุ่มแอ็กชันหลักวงกลมใหญ่กลางจอ (ยิง / แทง / พร้อม) */
-        .center-circle-btn { width: 180px; height: 180px; border-radius: 50%; border: 4px solid #ffffff; background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(0,0,0,0.4) 100%); color: #ffffff; font-size: 36px; font-weight: 900; display: flex; justify-content: center; align-items: center; cursor: pointer; position: absolute; top: 40%; left: calc(50% - 90px); z-index: 20; transition: all 0.2s; box-shadow: 0 0 30px rgba(255,255,255,0.1); }
-        .center-circle-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.3); }
+        .sub-circle-btn { width: 62px; height: 62px; border-radius: 50%; border: 2px solid #ffffff; background: rgba(9, 9, 11, 0.85); color: #ffffff; font-size: 14px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; position: absolute; z-index: 20; }
         
-        /* ปุ่มวงกลมย่อยสกิลของฆาตกร */
-        .sub-circle-btn { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #ffffff; background: rgba(9, 9, 11, 0.8); color: #ffffff; font-size: 15px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; position: absolute; z-index: 20; transition: transform 0.1s; }
-        .sub-circle-btn:active { transform: scale(0.9); }
-        
-        /* ดีไซน์หน้าเมนูหลักและล็อบบี้ */
-        .app-title { font-size: 32px; font-weight: 900; text-align: center; margin-top: 40px; letter-spacing: 2px; color: #ffffff; }
-        .menu-box { width: 100%; border: 2px solid #ffffff; padding: 24px; margin-bottom: 16px; text-align: center; font-size: 18px; font-weight: 800; background: rgba(255,255,255,0.03); cursor: pointer; transition: all 0.2s; border-radius: 8px; }
+        /* Menu & Lobby Layout */
+        .app-title { font-size: 36px; font-weight: 900; text-align: center; margin-top: 40px; letter-spacing: 2px; }
+        .menu-box { width: 100%; border: 2px solid #ffffff; padding: 20px; margin-bottom: 16px; text-align: center; font-size: 18px; font-weight: 800; background: rgba(255,255,255,0.02); cursor: pointer; border-radius: 6px; }
         .menu-box:active { background: #ffffff; color: #000000; }
         
-        .lobby-info-line { width: 100%; text-align: center; font-size: 15px; color: #a1a1aa; border-bottom: 1px solid #27272a; padding-bottom: 12px; margin-bottom: 20px; font-weight: 600; }
-        .member-row { display: flex; align-items: center; padding: 12px; border: 1px solid #27272a; border-radius: 6px; margin-bottom: 10px; background: rgba(255,255,255,0.01); }
-        .avatar-slot { width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ffffff; margin-right: 16px; display: flex; justify-content: center; align-items: center; font-size: 11px; font-weight: bold; }
+        .lobby-info { width: 100%; text-align: center; font-size: 14px; color: #a1a1aa; border-bottom: 1px solid #27272a; padding-bottom: 12px; margin-bottom: 20px; }
+        .member-row { display: flex; align-items: center; padding: 12px; border: 1px solid #27272a; border-radius: 6px; margin-bottom: 10px; background: rgba(255,255,255,0.02); }
         
-        /* จำลองระบบ HUD และ แผนที่หลังบ้าน */
-        .map-container { width: 100%; height: 100%; background-color: #09090b; background-image: radial-gradient(#27272a 1px, transparent 1px); background-size: 20px 20px; position: relative; }
-        .player-dot { position: absolute; width: 12px; height: 12px; background: #ffffff; border-radius: 50%; box-shadow: 0 0 10px #fff; }
-        .quest-dot { position: absolute; width: 12px; height: 12px; background: #eab308; border-radius: 50%; box-shadow: 0 0 10px #eab308; }
-        .cooldown-text { border: 1px solid #ffffff; padding: 3px 8px; font-size: 12px; font-weight: bold; font-family: monospace; background: #000; }
+        /* Live Video Camera Background */
+        video { position: absolute; width: 100%; height: 100%; object-fit: cover; top: 0; left: 0; z-index: 1; pointer-events: none; }
+        .camera-fallback { position: absolute; width: 100%; height: 100%; background: #18181b; z-index: 1; display: flex; justify-content: center; align-items: center; font-size: 14px; color: #52525b; }
+        .hud-overlay { position: absolute; width: 100%; height: 100%; top:0; left:0; background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.7) 100%); z-index: 2; pointer-events: none; }
+
+        /* GPS Radar Map Component */
+        .digital-map-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #09090b; z-index: 40; padding: 24px; flex-direction: column; }
+        .radar-screen { width: 100%; height: 75%; border: 2px solid #27272a; position: relative; background: #020205; overflow: hidden; border-radius: 8px; }
+        .radar-sweep { position: absolute; width: 100%; height: 100%; background: conic-gradient(from 0deg, rgba(34,197,94,0.15) 0deg, transparent 90deg); animation: sweep 4s linear infinite; transform-origin: center; pointer-events: none; }
+        @keyframes sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         
-        /* เอฟเฟกต์พื้นหลังจำลองเล
+        .radar-node { position: absolute; width: 14px; height: 14px; border-radius: 50%; transform: translate(-50%, -50%); font-size: 10px; text-align: center; font-weight: bold; }
+        .cooldown-indicator { border: 1px solid #ffffff; padding: 4px 10px; font-size: 12px; font-weight: bold; font-family: monospace; background: #000; position: absolute; bottom: 40px; left: 24px; z-index: 25; }
+    </style>
+</head>
+<body>
+
+    <div class="phone-frame">
+        <div id="cameraContainer" style="display:none;">
+            <div class="camera-fallback">เปิดใช้งานกล้องระบบ AR ตัวจริง...</div>
+            <video id="webcam" autoplay playsinline muted></video>
+            <div class="hud-overlay"></div>
+        </div>
+
+        <div class="view active" id="viewMain">
+            <div class="app-title">THE HUNT</div>
+            <div>
+                <div class="menu-box" onclick="goToScreen('viewSelectRole')">สร้างห้องเกม</div>
+                <div class="menu-box" onclick="goToScreen('viewSelectRole')">เข้าร่วมห้องเกม</div>
+            </div>
+            <div style="text-align: center; font-size: 12px; color: #3f3f46;">LIVE AR BACKEND ENGINE</div>
+        </div>
+
+        <div class="view" id="viewSelectRole">
+            <div class="app-title" style="font-size:24px;">เลือกฝั่งผู้เล่นจริง</div>
+            <div style="margin-bottom: 40px;">
+                <div class="menu-box" style="border-color:#eab308; color:#eab308;" onclick="confirmRole('survivor')">🙋‍♂️ คนธรรมดา (สายทำภารกิจ)</div>
+                <div class="menu-box" style="border-color:#3b82f6; color:#3b82f6;" onclick="confirmRole('police')">👮‍♂️ ตำรวจ (สายยิงสกัด)</div>
+                <div class="menu-box" style="border-color:#ef4444; color:#ef4444;" onclick="confirmRole('killer')">🔪 ฆาตกร (ล่าเป้าหมาย)</div>
+            </div>
+            <div></div>
+        </div>
+
+        <div class="view" id="viewLobby">
+            <div>
+                <div class="lobby-info" id="gpsStatus">📡 กำลังเปิดระบบระบุพิกัดพิกัดผ่านดาวเทียม...</div>
+                <div class="member-row">👥 คุณ (ผู้เล่นหลัก) <span style="margin-left:auto; color:#22c55e;" id="latlongText">รอพิกัด...</span></div>
+                <div class="member-row">👥 สมาชิกคนอื่นๆในพื้นที่ใกล้เคียง...</div>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <button class="menu-box" style="background:#ffffff; color:#000000;" onclick="startMatchEngine()">เริ่มแมตช์การแข่งขัน</button>
+            </div>
+        </div>
+
+        <div class="view" id="viewRadarMap" style="padding:0;">
+            <div style="width:100%; height:100%; background:#020205; position:relative; padding:24px; display:flex; flex-direction:column; justify-content:space-between
